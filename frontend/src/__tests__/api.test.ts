@@ -5,9 +5,11 @@ beforeEach(() => {
 });
 
 function mockResponse(body: unknown, status: number): Response {
+  const text = typeof body === 'string' ? body : JSON.stringify(body);
   return {
     ok: status >= 200 && status < 300,
     status,
+    text: async () => text,
     json: async () => body,
   } as Response;
 }

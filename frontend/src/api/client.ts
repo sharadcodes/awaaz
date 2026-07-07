@@ -19,7 +19,11 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
       response.status,
     );
   }
-  return (await response.json()) as T;
+  // 204 No Content (and any empty body) has nothing to parse.
+  if (response.status === 204) return undefined as T;
+  const text = await response.text();
+  if (!text) return undefined as T;
+  return JSON.parse(text) as T;
 }
 
 const jsonHeaders = { 'Content-Type': 'application/json' };
