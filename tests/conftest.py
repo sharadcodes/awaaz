@@ -1,18 +1,6 @@
-import atexit
-import os
-import shutil
-import tempfile
 from collections.abc import AsyncIterator
-from pathlib import Path
 
-# Create a writable test environment before importing the app, because
-# awaaz.db builds the SQLAlchemy engine at module import time.
-_test_dir = tempfile.mkdtemp(prefix="awaaz-test-")
-os.environ["AWAAZ_DATA_DIR"] = _test_dir
-os.environ["AWAAZ_DATABASE_URL"] = "sqlite+aiosqlite://"
-atexit.register(shutil.rmtree, _test_dir, ignore_errors=True)
-
-import pytest
+import _set_test_env  # noqa: F401
 import pytest_asyncio
 from fastapi.testclient import TestClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
