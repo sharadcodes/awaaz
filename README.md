@@ -1,7 +1,7 @@
 # Awaaz
 
 <p align="center">
-  <img src="docs/banners/b1.webp" alt="Awaaz promotional banner" width="100%">
+  <img src="docs/banners/b1_hi.webp" alt="Awaaz promotional banner" width="100%">
 </p>
 
 <p align="center">
