@@ -23,22 +23,26 @@ export function JobCard({ job, title, onAction }: JobCardProps) {
         </div>
         <span className={`status status-${job.status}`}>{job.status}</span>
       </header>
-      <div className="progress-meta">
-        <span>
-          {job.progress.processed} / {job.progress.total} chunks
-        </span>
-        <strong>{Math.round(job.progress.percent)}%</strong>
-      </div>
-      <div
-        className="progress-track"
-        role="progressbar"
-        aria-label={`${title ?? 'Audiobook'} progress`}
-        aria-valuenow={job.progress.percent}
-        aria-valuemin={0}
-        aria-valuemax={100}
-      >
-        <span style={{ width: `${job.progress.percent}%` }} />
-      </div>
+      {job.status !== 'cancelled' && (
+        <>
+          <div className="progress-meta">
+            <span>
+              {job.progress.processed} / {job.progress.total} chunks
+            </span>
+            <strong>{Math.round(job.progress.percent)}%</strong>
+          </div>
+          <div
+            className="progress-track"
+            role="progressbar"
+            aria-label={`${title ?? 'Audiobook'} progress`}
+            aria-valuenow={job.progress.percent}
+            aria-valuemin={0}
+            aria-valuemax={100}
+          >
+            <span style={{ width: `${job.progress.percent}%` }} />
+          </div>
+        </>
+      )}
       <p className="job-settings">
         {job.voice} · {job.chunking_mode} · {job.character_limit.toLocaleString()} chars
       </p>

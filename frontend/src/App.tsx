@@ -919,7 +919,7 @@ function BookRow({ document: doc, job, onClick }: BookRowProps) {
         {doc.author && <span className="library-item-author">{doc.author}</span>}
         <span className="library-item-title">{doc.title}</span>
         {description && <span className="library-item-desc">{description}</span>}
-        {job && (
+        {job && job.status !== 'cancelled' && (
           <div className="library-item-progress">
             <span className="progress-bar" role="progressbar" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100}>
               <span className="progress-bar-fill" style={{ width: `${percent}%` }} />
@@ -1050,6 +1050,7 @@ function DetailModal({
               backends={backends}
               disabled={busy}
               onSubmit={onGenerate}
+              text={draft}
               voicePreferences={voicePreferences}
             />
           </div>
