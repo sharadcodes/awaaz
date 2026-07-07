@@ -11,6 +11,19 @@ and a versioned REST API. Long documents become durable synthesis jobs instead o
 TTS request: text is chunked, progress is persisted, failed work can be retried, and completed
 WAV chunks survive worker restarts.
 
+## Table of contents
+
+- [Why Awaaz is technically interesting](#why-awaaz-is-technically-interesting)
+- [Product capabilities](#product-capabilities)
+- [Product tour](#product-tour)
+- [Architecture](#architecture)
+- [Stack](#stack)
+- [Run locally](#run-locally)
+- [Typical workflow](#typical-workflow)
+- [API-first usage](#api-first-usage)
+- [Development checks](#development-checks)
+- [Repository layout](#repository-layout)
+
 <p align="center">
   <a href="docs/screenshots/library-overview.png">
     <img src="docs/screenshots/library-overview.png" alt="Awaaz library showing imported books, covers, search, and filters" width="100%">
@@ -99,6 +112,19 @@ semantics are needed.
 - Docker Engine or Docker Desktop with Compose v2.
 - NVIDIA GPU and NVIDIA Container Toolkit for the bundled Kokoro GPU container.
 - Free local ports `3000` and `8000`.
+
+### Tested hardware
+
+GPU synthesis has only been validated on the configuration below. Other setups may work but are unverified.
+
+| Platform | GPU | Status |
+| --- | --- | --- |
+| Windows | NVIDIA GeForce GTX 1650 | Tested |
+| macOS (Apple Silicon, Metal/MLX) | — | Not tested |
+| Linux (AMD ROCm) | — | Not tested |
+| Linux (NVIDIA) | — | Not tested |
+
+CPU-only runs and OpenAI-compatible remote backends do not require a local GPU.
 
 ```bash
 cp .env.example .env
