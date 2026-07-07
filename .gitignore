@@ -209,6 +209,9 @@ test_files/*.epub
 test_files/*.pdf
 test_files/*.mobi
 
+# Internal documentation and notes (not for release)
+internal_docs/
+
 # PyPI configuration file
 .pypirc
 
