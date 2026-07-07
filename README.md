@@ -248,3 +248,8 @@ compose.yaml        Local application and test topology
 ```
 
 More detail: [architecture notes](docs/architecture.md).
+
+## Creator & License
+
+- **Author:** Sharad Raj Singh Maurya
+- **License:** [MIT License](LICENSE) (see [LICENSE](LICENSE) for details)

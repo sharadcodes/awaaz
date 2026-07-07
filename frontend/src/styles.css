@@ -337,18 +337,10 @@ label small,
   text-decoration: none;
 }
 
-.brand-mark {
-  width: 30px;
-  height: 30px;
-  border-radius: 8px;
-  display: grid;
-  place-items: center;
-  color: var(--accent-text);
-  background: var(--accent);
-  font-family: Georgia, 'Times New Roman', serif;
-  font-size: 18px;
-  font-weight: 600;
-  box-shadow: var(--shadow);
+.brand-logo {
+  height: 28px;
+  width: auto;
+  display: block;
 }
 
 .brand-text strong {
@@ -485,7 +477,27 @@ label small,
   display: flex;
   flex-direction: column;
   gap: 24px;
-  height: 100%;
+  flex: 1;
+}
+
+.sidebar-footer {
+  margin-top: 24px;
+  padding-top: 12px;
+  font-size: 11px;
+  color: var(--text-muted);
+  border-top: 1px solid var(--border);
+  text-align: center;
+}
+
+.sidebar-footer a {
+  color: var(--text-secondary);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.sidebar-footer a:hover {
+  color: var(--text-strong);
+  text-decoration: underline;
 }
 
 .nav-section {

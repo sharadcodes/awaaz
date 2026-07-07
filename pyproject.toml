@@ -1,6 +1,9 @@
 [project]
 name = "awaaz"
 version = "1.0.0"
+authors = [
+    { name = "Sharad Raj Singh Maurya" }
+]
 description = "Resumable, API-first audiobook generation service"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"

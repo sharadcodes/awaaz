@@ -11,8 +11,8 @@
     "format": "prettier --write ."
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "author": "Sharad Raj Singh Maurya",
+  "license": "MIT",
   "description": "",
   "dependencies": {
     "react": "19.1.0",
