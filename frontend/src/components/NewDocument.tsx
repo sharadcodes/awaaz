@@ -48,7 +48,7 @@ export function NewDocument({ busy, onCreate, onUpload }: NewDocumentProps) {
               </svg>
             </span>
             <strong>{file ? file.name : 'Choose EPUB or TXT'}</strong>
-            <small>{file ? `${(file.size / 1024).toFixed(1)} KB` : 'Maximum 20 MB'}</small>
+            <small>{file ? `${(file.size / 1024).toFixed(1)} KB` : 'Maximum 100 MB'}</small>
           </label>
           <label className="field-label">
             <span className="field-label-text">

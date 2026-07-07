@@ -18,6 +18,7 @@ import {
 } from './api/client';
 import { GenerationForm } from './components/GenerationForm';
 import { JobCard } from './components/JobCard';
+import { Modal } from './components/Modal';
 import { NewDocument } from './components/NewDocument';
 import { SettingsModal } from './components/SettingsModal';
 import type { Backend, Collection, Document, Job, JobAction, JobRequest } from './types';
@@ -126,9 +127,8 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [expandedCollections, setExpandedCollections] = useState<Set<string>>(new Set());
+  const [managingCollectionId, setManagingCollectionId] = useState<string | null>(null);
   const [creatingCollection, setCreatingCollection] = useState(false);
-  const [newCollectionName, setNewCollectionName] = useState('');
   const [renamingCollection, setRenamingCollection] = useState<{ id: string; name: string } | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [voicePreferences, setVoicePreferences] = useState<Record<string, string>>(() => {
@@ -274,6 +274,7 @@ export default function App() {
     void run(async () => {
       const collection = await apiCreateCollection(name);
       setCollections((current) => [collection, ...current]);
+      setCreatingCollection(false);
     });
   };
 
@@ -307,25 +308,6 @@ export default function App() {
       setDocuments((current) => current.filter((item) => item.id !== documentId));
       setJobs((current) => current.filter((item) => item.document_id !== documentId));
       setSelectedDocId(null);
-    });
-  };
-
-  const handleToggleCollectionDoc = (collectionId: string, documentId: string, include: boolean) => {
-    void run(async () => {
-      const collection = collections.find((item) => item.id === collectionId);
-      if (!collection) return;
-      const currentIds = documents
-        .filter((document) => document.collection_names.includes(collection.name))
-        .map((document) => document.id);
-      const nextIds = include
-        ? Array.from(new Set([...currentIds, documentId]))
-        : currentIds.filter((id) => id !== documentId);
-      const updated = await apiUpdateCollection(collectionId, {
-        name: collection.name,
-        document_ids: nextIds,
-      });
-      setCollections((current) => current.map((item) => (item.id === updated.id ? updated : item)));
-      setDocuments(await listDocuments());
     });
   };
 
@@ -376,15 +358,17 @@ export default function App() {
     return categoryValues.filter(([value]) => value.toLowerCase().includes(trimmed));
   }, [categoryValues, chipFilter]);
 
-  const toggleCollectionExpand = (id: string) => {
-    setExpandedCollections((current) => {
-      const next = new Set(current);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
+  const handleCollectionSave = (collectionId: string, documentIds: string[]) => {
+    void run(async () => {
+      const collection = collections.find((item) => item.id === collectionId);
+      if (!collection) return;
+      const updated = await apiUpdateCollection(collectionId, {
+        name: collection.name,
+        document_ids: documentIds,
+      });
+      setCollections((current) => current.map((item) => (item.id === updated.id ? updated : item)));
+      setDocuments(await listDocuments());
+      setManagingCollectionId(null);
     });
   };
 
@@ -549,45 +533,14 @@ export default function App() {
                   +
                 </button>
               </div>
-              {creatingCollection && (
-                <form
-                  className="collection-create"
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    const trimmed = newCollectionName.trim();
-                    if (!trimmed) return;
-                    handleCollectionCreate(trimmed);
-                    setNewCollectionName('');
-                    setCreatingCollection(false);
-                  }}
-                >
-                  <input
-                    value={newCollectionName}
-                    onChange={(event) => setNewCollectionName(event.target.value)}
-                    placeholder="New collection name"
-                    autoFocus
-                  />
-                  <button
-                    className="primary-button"
-                    type="submit"
-                    disabled={!newCollectionName.trim()}
-                  >
-                    Create
-                  </button>
-                </form>
-              )}
               <div className="collection-list">
                 {collections.map((collection) => {
                   const isSelected = selectedCollectionId === collection.id;
-                  const isExpanded = expandedCollections.has(collection.id);
                   return (
                     <div key={collection.id} className={`collection-item ${isSelected ? 'active' : ''}`}>
                       <div
                         className="collection-row"
-                        onClick={() => {
-                          handleSelectCollection(collection.id);
-                          toggleCollectionExpand(collection.id);
-                        }}
+                        onClick={() => handleSelectCollection(collection.id)}
                       >
                         {renamingCollection?.id === collection.id ? (
                           <input
@@ -629,6 +582,19 @@ export default function App() {
                         )}
                         <span className="count">{collection.document_count}</span>
                         <button
+                          className="collection-manage"
+                          aria-label="Manage books in collection"
+                          title="Manage books"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setManagingCollectionId(collection.id);
+                          }}
+                        >
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                          </svg>
+                        </button>
+                        <button
                           className="collection-delete"
                           aria-label="Delete collection"
                           onClick={(event) => {
@@ -640,30 +606,7 @@ export default function App() {
                         >
                           ×
                         </button>
-                        <span className={`chevron ${isExpanded ? 'open' : ''}`} aria-hidden="true">
-                          ›
-                        </span>
                       </div>
-                      {isExpanded && (
-                        <div className="collection-docs">
-                          {documents.map((document) => (
-                            <label key={document.id} className="collection-doc-row">
-                              <input
-                                type="checkbox"
-                                checked={document.collection_names.includes(collection.name)}
-                                onChange={(event) =>
-                                  handleToggleCollectionDoc(
-                                    collection.id,
-                                    document.id,
-                                    event.target.checked,
-                                  )
-                                }
-                              />
-                              <span className="doc-title">{document.title}</span>
-                            </label>
-                          ))}
-                        </div>
-                      )}
                     </div>
                   );
                 })}
@@ -859,6 +802,22 @@ export default function App() {
               // ignore storage errors
             }
           }}
+        />
+      )}
+      {managingCollectionId && (
+        <CollectionManageModal
+          collection={collections.find((item) => item.id === managingCollectionId)!}
+          documents={documents}
+          busy={busy}
+          onClose={() => setManagingCollectionId(null)}
+          onSave={handleCollectionSave}
+        />
+      )}
+      {creatingCollection && (
+        <CollectionCreateModal
+          busy={busy}
+          onClose={() => setCreatingCollection(false)}
+          onCreate={handleCollectionCreate}
         />
       )}
     </div>
@@ -1120,5 +1079,147 @@ function UploadModal({ busy, onClose, onCreateText, onUpload }: UploadModalProps
         <NewDocument busy={busy} onCreate={onCreateText} onUpload={onUpload} />
       </div>
     </div>
+  );
+}
+
+interface CollectionManageModalProps {
+  collection: Collection;
+  documents: Document[];
+  busy: boolean;
+  onClose: () => void;
+  onSave: (collectionId: string, documentIds: string[]) => void;
+}
+
+interface CollectionCreateModalProps {
+  busy: boolean;
+  onClose: () => void;
+  onCreate: (name: string) => void;
+}
+
+function CollectionCreateModal({ busy, onClose, onCreate }: CollectionCreateModalProps) {
+  const [name, setName] = useState('');
+  const trimmed = name.trim();
+  const handleSubmit = () => {
+    if (!trimmed) return;
+    onCreate(trimmed);
+  };
+
+  return (
+    <Modal
+      title="Create collection"
+      onClose={onClose}
+      footer={
+        <>
+          <button className="text-button" onClick={onClose} disabled={busy}>
+            Cancel
+          </button>
+          <button className="primary-button" disabled={busy || !trimmed} onClick={handleSubmit}>
+            {busy ? 'Creating…' : 'Create'}
+          </button>
+        </>
+      }
+    >
+      <div className="collection-create-field">
+        <input
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          placeholder="Collection name"
+          autoFocus
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' && trimmed) {
+              handleSubmit();
+            } else if (event.key === 'Escape') {
+              onClose();
+            }
+          }}
+        />
+      </div>
+    </Modal>
+  );
+}
+
+function CollectionManageModal({ collection, documents, busy, onClose, onSave }: CollectionManageModalProps) {
+  const [search, setSearch] = useState('');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(
+    () =>
+      new Set(
+        documents
+          .filter((document) => document.collection_names.includes(collection.name))
+          .map((document) => document.id),
+      ),
+  );
+
+  const filtered = useMemo(() => {
+    const trimmed = search.trim().toLowerCase();
+    if (!trimmed) return documents;
+    return documents.filter(
+      (document) =>
+        document.title.toLowerCase().includes(trimmed) ||
+        (document.author ?? '').toLowerCase().includes(trimmed) ||
+        (document.series ?? '').toLowerCase().includes(trimmed),
+    );
+  }, [documents, search]);
+
+  const toggle = (documentId: string) => {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (next.has(documentId)) {
+        next.delete(documentId);
+      } else {
+        next.add(documentId);
+      }
+      return next;
+    });
+  };
+
+  return (
+    <Modal
+      title="Manage collection"
+      subtitle={collection.name}
+      onClose={onClose}
+      footer={
+        <>
+          <button className="text-button" onClick={onClose} disabled={busy}>
+            Cancel
+          </button>
+          <button
+            className="primary-button"
+            disabled={busy}
+            onClick={() => onSave(collection.id, Array.from(selectedIds))}
+          >
+            {busy ? 'Saving…' : 'Save'}
+          </button>
+        </>
+      }
+    >
+      <div className="collection-manage-search">
+        <input
+          type="search"
+          placeholder="Search books…"
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          autoFocus
+        />
+      </div>
+      <div className="collection-manage-list">
+        {filtered.length === 0 ? (
+          <p className="empty-state">No books match your search.</p>
+        ) : (
+          filtered.map((document) => (
+            <label key={document.id} className="collection-manage-row">
+              <input
+                type="checkbox"
+                checked={selectedIds.has(document.id)}
+                onChange={() => toggle(document.id)}
+              />
+              <span className="collection-manage-title">{document.title}</span>
+              {document.author && (
+                <span className="collection-manage-meta">{document.author}</span>
+              )}
+            </label>
+          ))
+        )}
+      </div>
+    </Modal>
   );
 }
