@@ -97,7 +97,7 @@ foreach ($item in $files) {
 
 if ($Commit) {
     git -C $repoRoot add -A
-    git -C $repoRoot commit -m "chore: bump version to $Version" ?? 0
+    git -C $repoRoot commit -m "chore: bump version to $Version"
 
     if ($LASTEXITCODE -ne 0) {
         throw "git commit failed"
