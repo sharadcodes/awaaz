@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 
 import { listBackendVoices } from '../api/client';
+import { countChunks } from '../api/chunking';
 import type { Backend, ChunkingMode, JobRequest } from '../types';
 import { VoiceSelector } from './VoiceSelector';
 
@@ -8,6 +9,7 @@ interface GenerationFormProps {
   backends: Backend[];
   disabled: boolean;
   onSubmit: (settings: JobRequest) => void;
+  text: string;
   voicePreferences?: Record<string, string>;
 }
 
@@ -23,7 +25,7 @@ function modeDetail(value: ChunkingMode): string {
   return modes.find((item) => item.value === value)?.detail ?? '';
 }
 
-export function GenerationForm({ backends, disabled, onSubmit, voicePreferences }: GenerationFormProps) {
+export function GenerationForm({ backends, disabled, onSubmit, text, voicePreferences }: GenerationFormProps) {
   const [backendName, setBackendName] = useState('');
   const [model, setModel] = useState('');
   const [voice, setVoice] = useState('');
@@ -36,6 +38,11 @@ export function GenerationForm({ backends, disabled, onSubmit, voicePreferences 
     () => backends.find((item) => item.name === backendName) ?? backends[0],
     [backendName, backends],
   );
+
+  // Character limit only applies in "character" mode. Other modes use the
+  // backend maximum so semantic units are preserved.
+  const limitVisible = mode === 'character';
+  const effectiveLimit = limitVisible ? characterLimit : (backend?.max_characters ?? characterLimit);
 
   useEffect(() => {
     if (!backend) return;
@@ -69,6 +76,8 @@ export function GenerationForm({ backends, disabled, onSubmit, voicePreferences 
 
   if (!backend) return <p className="empty-state">No TTS backend configured.</p>;
 
+  const chunkCount = countChunks(text, mode, effectiveLimit);
+
   return (
     <form
       className="generation-form"
@@ -80,7 +89,7 @@ export function GenerationForm({ backends, disabled, onSubmit, voicePreferences 
           voice,
           speed,
           chunking_mode: mode,
-          character_limit: characterLimit,
+          character_limit: effectiveLimit,
         });
       }}
     >
@@ -133,21 +142,25 @@ export function GenerationForm({ backends, disabled, onSubmit, voicePreferences 
               </option>
             ))}
           </select>
-          <small className="mode-detail">{modeDetail(mode)}</small>
+          <small className="mode-detail">
+            {modeDetail(mode)} · {chunkCount.toLocaleString()} chunk{chunkCount === 1 ? '' : 's'}
+          </small>
         </label>
-        <label>
-          Character limit
-          <input
-            aria-label="Character limit"
-            type="number"
-            min="1"
-            max={backend.max_characters}
-            value={characterLimit}
-            onChange={(event) => setCharacterLimit(Number(event.target.value))}
-            required
-          />
-          <small>Backend maximum: {backend.max_characters.toLocaleString()}</small>
-        </label>
+        {limitVisible && (
+          <label>
+            Character limit
+            <input
+              aria-label="Character limit"
+              type="number"
+              min="1"
+              max={backend.max_characters}
+              value={characterLimit}
+              onChange={(event) => setCharacterLimit(Number(event.target.value))}
+              required
+            />
+            <small>Backend maximum: {backend.max_characters.toLocaleString()}</small>
+          </label>
+        )}
       </div>
       <button className="primary-button" type="submit" disabled={disabled}>
         <span aria-hidden="true">▶</span> Generate audiobook
