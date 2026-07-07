@@ -208,6 +208,11 @@ tempCodeRunnerFile.py
 # Ruff stuff:
 .ruff_cache/
 
+# Local test fixtures (large binaries, ebooks, etc.)
+test_files/*.epub
+test_files/*.pdf
+test_files/*.mobi
+
 # PyPI configuration file
 .pypirc
 
