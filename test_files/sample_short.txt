@@ -1,0 +1,1 @@
+This is a short sample text for testing the audiobook generation system. It contains just a few sentences to verify basic functionality.

@@ -1,0 +1,124 @@
+x-app: &app
+  build:
+    context: .
+  env_file:
+    - .env
+  volumes:
+    - awaaz_data:/data
+  depends_on:
+    rabbitmq:
+      condition: service_healthy
+  restart: unless-stopped
+  stop_grace_period: 30s
+
+services:
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "127.0.0.1:5672:5672"
+      - "127.0.0.1:15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  supertonic:
+    build:
+      context: docker/supertonic
+    volumes:
+      - supertonic_models:/home/supertonic/.cache
+    expose:
+      - "7788"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:7788/v1/styles || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  kokoro:
+    image: ghcr.io/remsky/kokoro-fastapi-gpu:latest
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    expose:
+      - "8880"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8880/v1/audio/voices || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  api:
+    <<: *app
+    ports:
+      - "127.0.0.1:8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      supertonic:
+        condition: service_healthy
+      kokoro:
+        condition: service_healthy
+
+  worker:
+    <<: *app
+    command: ["/app/.venv/bin/celery", "-A", "awaaz.celery_tasks", "worker", "--loglevel=info", "--concurrency=1"]
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      supertonic:
+        condition: service_healthy
+      kokoro:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: frontend
+    environment:
+      API_UPSTREAM: http://api:8000
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:3000:80"
+    restart: unless-stopped
+
+  test:
+    build:
+      context: .
+    profiles: ["test"]
+    environment:
+      AWAAZ_DATABASE_URL: sqlite+aiosqlite:////tmp/awaaz-test.db
+      AWAAZ_DATA_DIR: /tmp/awaaz-data
+      AWAAZ_CELERY_BROKER_URL: memory://
+      AWAAZ_CELERY_RESULT_BACKEND: cache+memory://
+    volumes:
+      - ./tests:/app/tests:ro
+      - ./test_files:/app/test_files:ro
+    command: ["uv", "run", "--group", "dev", "pytest", "--cov=awaaz", "--cov-report=term-missing"]
+
+  frontend-test:
+    build:
+      context: frontend
+      target: test
+    profiles: ["test"]
+
+volumes:
+  awaaz_data:
+  supertonic_models:
