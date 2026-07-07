@@ -86,8 +86,6 @@ services:
     environment:
       AWAAZ_DATABASE_URL: sqlite+aiosqlite:////tmp/awaaz-test.db
       AWAAZ_DATA_DIR: /tmp/awaaz-data
-      AWAAZ_CELERY_BROKER_URL: memory://
-      AWAAZ_CELERY_RESULT_BACKEND: cache+memory://
     volumes:
       - ./tests:/app/tests:ro
       - ./test_files:/app/test_files:ro

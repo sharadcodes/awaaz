@@ -31,12 +31,7 @@ class Settings(BaseSettings):
     max_retries: int = Field(default=3, ge=0, le=10)
     max_upload_bytes: int = Field(default=100 * 1024 * 1024, ge=1)
     openai_backend: str = Field(default="kokoro", pattern="^(supertonic|kokoro|custom)$")
-    
-    # Celery settings (retained for test suite compatibility; production uses QueueWorker).
-    celery_broker_url: str = "amqp://guest:guest@rabbitmq:5672//"
-    celery_result_backend: str = "rpc://"
-    celery_task_routes: dict = Field(default_factory=dict)
-    
+
     supertonic: BackendSettings = BackendSettings(
         base_url="http://supertonic:7788/v1",
         model="supertonic-3",
