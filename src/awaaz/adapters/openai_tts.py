@@ -1,3 +1,4 @@
+import wave
 from pathlib import Path
 
 import aiofiles
@@ -5,6 +6,17 @@ import httpx
 
 from awaaz.config import BackendSettings
 from awaaz.domain.exceptions import TtsRequestError
+
+
+def _write_silent_wav(target: Path, *, sample_rate: int = 24000, duration: float = 0.5) -> None:
+    """Write a short silent mono 16-bit WAV file for non-speakable text (e.g. '***')."""
+    n_frames = int(sample_rate * duration)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    with wave.open(str(target), "wb") as wav:
+        wav.setnchannels(1)
+        wav.setsampwidth(2)
+        wav.setframerate(sample_rate)
+        wav.writeframes(b"\x00\x00" * n_frames)
 
 
 class OpenAiTtsAdapter:
@@ -47,10 +59,13 @@ class OpenAiTtsAdapter:
                 retryable=retryable,
             )
         if not response.content:
-            raise TtsRequestError("TTS server returned empty audio", retryable=True)
+            # Some TTS servers return 200 with an empty body for text that has
+            # no speakable tokens (e.g. scene-break markers like '***'). Treat
+            # this as a short silent pause instead of failing the whole job.
+            _write_silent_wav(target)
+            return
         target.parent.mkdir(parents=True, exist_ok=True)
         temporary = target.with_suffix(".tmp")
         async with aiofiles.open(temporary, "wb") as output:
             await output.write(response.content)
         temporary.replace(target)
-

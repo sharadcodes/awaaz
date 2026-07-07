@@ -77,36 +77,48 @@ async def list_backends(settings: Settings = Depends(get_settings)) -> list[dict
     ]
 
 
-@router.get("/backends/{name}/voices")
+class BackendVoicesResponse(BaseModel):
+    backend: str
+    voices: list[str]
+
+
+@router.get("/backends/{name}/voices", response_model=BackendVoicesResponse)
 async def list_backend_voices(
     name: str, settings: Settings = Depends(get_settings)
-) -> dict[str, list[str]]:
+) -> BackendVoicesResponse:
     backend = getattr(settings, name, None)
     if backend is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail=f"unknown backend: {name}"
         )
-    # Supertonic exposes /v1/styles, Kokoro exposes /v1/audio/voices
-    voices_path = "/v1/styles" if name == "supertonic" else "/v1/audio/voices"
+    # Supertonic exposes /v1/styles, Kokoro exposes /v1/audio/voices.
+    # base_url already includes the /v1 prefix (e.g. http://supertonic:7788/v1).
+    voices_path = "/styles" if name == "supertonic" else "/audio/voices"
     url = f"{backend.base_url.rstrip('/')}{voices_path}"
     timeout = httpx.Timeout(10.0)
     try:
         async with httpx.AsyncClient(timeout=timeout) as client:
             response = await client.get(url)
-    except httpx.RequestError as error:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=f"backend {name} unavailable: {error}",
-        ) from error
+    except httpx.RequestError:
+        # If the engine is unreachable, return an empty list so the UI can still
+        # let the user type a custom voice name.
+        return BackendVoicesResponse(backend=name, voices=[backend.voice])
     if response.status_code >= 400:
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"backend {name} returned {response.status_code}",
-        )
-    data = response.json()
-    # Both endpoints return {"voices": [...]} (kokoro) or {"voices": [...]} (supertonic)
-    voices = data.get("voices", [])
-    return {"backend": name, "voices": voices}
+        # If the engine's voice endpoint returns an error, return an empty list
+        # rather than propagating a 502/503 to the frontend.
+        return BackendVoicesResponse(backend=name, voices=[backend.voice])
+    try:
+        data = response.json()
+    except Exception:
+        return BackendVoicesResponse(backend=name, voices=[backend.voice])
+    # Supertonic returns {"styles": [{"name": "..."}, ...]}.
+    # Kokoro returns {"voices": ["...", ...]}.
+    voices: list[str] = []
+    for style in data.get("styles", []):
+        if isinstance(style, dict) and "name" in style:
+            voices.append(str(style["name"]))
+    voices.extend(data.get("voices", []))
+    return BackendVoicesResponse(backend=name, voices=voices)
 
 
 @router.post("/documents", response_model=DocumentRead, status_code=status.HTTP_201_CREATED)

@@ -5,28 +5,10 @@ x-app: &app
     - .env
   volumes:
     - awaaz_data:/data
-  depends_on:
-    rabbitmq:
-      condition: service_healthy
   restart: unless-stopped
   stop_grace_period: 30s
 
 services:
-  rabbitmq:
-    image: rabbitmq:3.13-management-alpine
-    environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
-    ports:
-      - "127.0.0.1:5672:5672"
-      - "127.0.0.1:15672:15672"
-    healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-    restart: unless-stopped
-
   supertonic:
     build:
       context: docker/supertonic
@@ -69,8 +51,6 @@ services:
       timeout: 3s
       retries: 5
     depends_on:
-      rabbitmq:
-        condition: service_healthy
       supertonic:
         condition: service_healthy
       kokoro:
@@ -78,9 +58,9 @@ services:
 
   worker:
     <<: *app
-    command: ["/app/.venv/bin/celery", "-A", "awaaz.celery_tasks", "worker", "--loglevel=info", "--concurrency=1"]
+    command: ["/app/.venv/bin/python", "-m", "awaaz.run_queue_worker"]
     depends_on:
-      rabbitmq:
+      api:
         condition: service_healthy
       supertonic:
         condition: service_healthy

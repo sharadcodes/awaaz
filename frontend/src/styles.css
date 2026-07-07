@@ -389,7 +389,32 @@ label small,
   display: flex;
   align-items: center;
   justify-content: flex-end;
+  gap: 8px;
   min-width: 40px;
+}
+
+.topbar-icon-button {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.topbar-icon-button:hover {
+  background: var(--surface);
+  color: var(--text-strong);
+}
+
+.topbar-icon-button svg {
+  width: 20px;
+  height: 20px;
 }
 
 .system-status {
@@ -1501,6 +1526,68 @@ label small,
   height: 22px;
 }
 
+/* Settings modal */
+
+.settings-modal {
+  width: min(480px, 100%);
+}
+
+.settings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 4px 0 20px;
+}
+
+.settings-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.settings-row input,
+.settings-row select,
+.voice-selector select,
+.voice-selector input {
+  width: 100%;
+  font-size: 13px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.voice-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.settings-engine {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.settings-engine strong {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  text-transform: capitalize;
+}
+
+.settings-engine small {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.settings-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 8px;
+}
+
 .paste-area {
   min-height: 180px;
   resize: vertical;
@@ -1548,6 +1635,12 @@ label small,
 .generation-form input {
   font-size: 13px;
   padding: 10px 12px;
+}
+
+.generation-form .voice-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .generation-form input[type='range'] {

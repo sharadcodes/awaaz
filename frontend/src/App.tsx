@@ -19,6 +19,7 @@ import {
 import { GenerationForm } from './components/GenerationForm';
 import { JobCard } from './components/JobCard';
 import { NewDocument } from './components/NewDocument';
+import { SettingsModal } from './components/SettingsModal';
 import type { Backend, Collection, Document, Job, JobAction, JobRequest } from './types';
 
 function readableError(error: unknown): string {
@@ -129,6 +130,15 @@ export default function App() {
   const [creatingCollection, setCreatingCollection] = useState(false);
   const [newCollectionName, setNewCollectionName] = useState('');
   const [renamingCollection, setRenamingCollection] = useState<{ id: string; name: string } | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [voicePreferences, setVoicePreferences] = useState<Record<string, string>>(() => {
+    try {
+      const saved = window.localStorage.getItem('awaaz_voice_preferences');
+      return saved ? (JSON.parse(saved) as Record<string, string>) : {};
+    } catch {
+      return {};
+    }
+  });
 
   const selected = useMemo(
     () => documents.find((document) => document.id === selectedDocId) ?? null,
@@ -444,6 +454,21 @@ export default function App() {
             <span className="status-label">{error ? 'Needs attention' : 'System ready'}</span>
             {activeJobs > 0 && <span className="status-pill">{activeJobs} active</span>}
           </div>
+          <button
+            className="topbar-icon-button"
+            onClick={() => setSettingsOpen(true)}
+            aria-label="Settings"
+            title="Settings"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.1.608 2.296.07 2.572-1.065z"
+              />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </button>
         </div>
       </header>
 
@@ -476,23 +501,6 @@ export default function App() {
 
             <div className="nav-section">
               <span className="nav-section-title">Library</span>
-              <button className="nav-item explore" disabled title="Coming soon">
-                <svg
-                  className="nav-item-icon"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  aria-hidden="true"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
-                  />
-                </svg>
-                <span>Explore</span>
-              </button>
               <button
                 className={`nav-item ${view === 'library' && !filter ? 'active' : ''}`}
                 onClick={() => {
@@ -800,6 +808,7 @@ export default function App() {
               backends={backends}
               jobs={jobs}
               busy={busy}
+              voicePreferences={voicePreferences}
               onSave={handleSave}
               onGenerate={handleCreateJob}
               onJobAction={handleJobAction}
@@ -816,6 +825,21 @@ export default function App() {
           onClose={() => setShowUpload(false)}
           onCreateText={handleCreateText}
           onUpload={handleUpload}
+        />
+      )}
+      {settingsOpen && (
+        <SettingsModal
+          backends={backends}
+          voicePreferences={voicePreferences}
+          onClose={() => setSettingsOpen(false)}
+          onSave={(next) => {
+            setVoicePreferences(next);
+            try {
+              window.localStorage.setItem('awaaz_voice_preferences', JSON.stringify(next));
+            } catch {
+              // ignore storage errors
+            }
+          }}
         />
       )}
     </div>
@@ -916,6 +940,7 @@ interface DetailModalProps {
   backends: Backend[];
   jobs: Job[];
   busy: boolean;
+  voicePreferences: Record<string, string>;
   onSave: () => void;
   onGenerate: (settings: JobRequest) => void;
   onJobAction: (jobId: string, action: JobAction) => void;
@@ -930,6 +955,7 @@ function DetailModal({
   backends,
   jobs,
   busy,
+  voicePreferences,
   onSave,
   onGenerate,
   onJobAction,
@@ -1020,7 +1046,12 @@ function DetailModal({
 
           <div className="generation-area">
             <h3>Voice settings</h3>
-            <GenerationForm backends={backends} disabled={busy} onSubmit={onGenerate} />
+            <GenerationForm
+              backends={backends}
+              disabled={busy}
+              onSubmit={onGenerate}
+              voicePreferences={voicePreferences}
+            />
           </div>
         </div>
 

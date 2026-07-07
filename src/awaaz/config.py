@@ -27,11 +27,12 @@ class Settings(BaseSettings):
     data_dir: Path = Path("/data")
     worker_concurrency: int = Field(default=1, ge=1, le=16)
     worker_poll_seconds: float = Field(default=1.0, ge=0.1)
+    worker_round_robin_batch: int = Field(default=1, ge=1, le=100)
     max_retries: int = Field(default=3, ge=0, le=10)
     max_upload_bytes: int = Field(default=100 * 1024 * 1024, ge=1)
     openai_backend: str = Field(default="kokoro", pattern="^(supertonic|kokoro|custom)$")
     
-    # Celery & RabbitMQ settings
+    # Celery settings (retained for test suite compatibility; production uses QueueWorker).
     celery_broker_url: str = "amqp://guest:guest@rabbitmq:5672//"
     celery_result_backend: str = "rpc://"
     celery_task_routes: dict = Field(default_factory=dict)

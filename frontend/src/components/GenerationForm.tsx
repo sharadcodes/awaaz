@@ -2,11 +2,13 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { listBackendVoices } from '../api/client';
 import type { Backend, ChunkingMode, JobRequest } from '../types';
+import { VoiceSelector } from './VoiceSelector';
 
 interface GenerationFormProps {
   backends: Backend[];
   disabled: boolean;
   onSubmit: (settings: JobRequest) => void;
+  voicePreferences?: Record<string, string>;
 }
 
 const modes: { value: ChunkingMode; label: string; detail: string }[] = [
@@ -21,7 +23,7 @@ function modeDetail(value: ChunkingMode): string {
   return modes.find((item) => item.value === value)?.detail ?? '';
 }
 
-export function GenerationForm({ backends, disabled, onSubmit }: GenerationFormProps) {
+export function GenerationForm({ backends, disabled, onSubmit, voicePreferences }: GenerationFormProps) {
   const [backendName, setBackendName] = useState('');
   const [model, setModel] = useState('');
   const [voice, setVoice] = useState('');
@@ -39,9 +41,14 @@ export function GenerationForm({ backends, disabled, onSubmit }: GenerationFormP
     if (!backend) return;
     setBackendName(backend.name);
     setModel(backend.model);
-    setVoice(backend.voice);
     setCharacterLimit((current) => Math.min(current, backend.max_characters));
   }, [backend]);
+
+  useEffect(() => {
+    if (!backend) return;
+    const preferred = voicePreferences?.[backend.name];
+    setVoice(preferred ?? backend.voice);
+  }, [backend, voicePreferences]);
 
   useEffect(() => {
     if (!backend) return;
@@ -90,18 +97,13 @@ export function GenerationForm({ backends, disabled, onSubmit }: GenerationFormP
         </label>
         <label>
           Voice
-          <input
+          <VoiceSelector
             value={voice}
-            onChange={(event) => setVoice(event.target.value)}
-            list="voice-options"
+            options={voices}
+            onChange={setVoice}
             required
-            placeholder="Type or select a voice"
+            placeholder="Enter custom voice name"
           />
-          <datalist id="voice-options">
-            {voices.map((item) => (
-              <option key={item} value={item} />
-            ))}
-          </datalist>
         </label>
         <label>
           Model

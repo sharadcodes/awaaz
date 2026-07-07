@@ -5,6 +5,12 @@ server {
     index index.html;
     client_max_body_size 100m;
 
+    # Docker's embedded DNS server. Using a variable in proxy_pass forces nginx
+    # to re-resolve the upstream hostname on each request, so it survives container
+    # recreation (which changes the upstream IP address).
+    resolver 127.0.0.11 valid=10s;
+    set $api_upstream ${API_UPSTREAM};
+
     location = /health {
         access_log off;
         add_header Content-Type text/plain;
@@ -12,7 +18,7 @@ server {
     }
 
     location /api/ {
-        proxy_pass ${API_UPSTREAM};
+        proxy_pass $api_upstream;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -22,7 +28,7 @@ server {
     }
 
     location /v1/ {
-        proxy_pass ${API_UPSTREAM};
+        proxy_pass $api_upstream;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_read_timeout 3600s;
@@ -31,12 +37,12 @@ server {
     }
 
     location = /docs {
-        proxy_pass ${API_UPSTREAM}/docs;
+        proxy_pass $api_upstream/docs;
         proxy_set_header Host $host;
     }
 
     location = /openapi.json {
-        proxy_pass ${API_UPSTREAM}/openapi.json;
+        proxy_pass $api_upstream/openapi.json;
         proxy_set_header Host $host;
     }
 

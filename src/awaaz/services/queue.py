@@ -21,6 +21,8 @@ class QueueWorker:
         self._sessions = sessions
         self._settings = settings
         self._adapters = adapters
+        self._current_job_id: str | None = None
+        self._chunks_in_round = 0
 
     async def recover_abandoned(self) -> None:
         async with self._sessions() as session:
@@ -32,13 +34,78 @@ class QueueWorker:
             )
             await session.commit()
 
+    async def _next_job_id(self) -> str | None:
+        """Pick the next job in round-robin order that still has pending chunks."""
+        async with self._sessions() as session:
+            current_job = None
+            if self._current_job_id is not None:
+                current_job = await session.get(Job, self._current_job_id)
+
+            # Find jobs with pending chunks, ordered by creation time.
+            pending_jobs = (
+                select(Job.id, Job.created_at)
+                .where(Job.status.in_({"queued", "running"}))
+                .where(
+                    Job.id.in_(
+                        select(Chunk.job_id)
+                        .where(Chunk.status == "pending")
+                        .distinct()
+                    )
+                )
+                .order_by(Job.created_at)
+            )
+            rows = (await session.execute(pending_jobs)).all()
+            if not rows:
+                return None
+
+            # If we have a current job and it still has pending work, try to
+            # advance to the next job in created_at order to give others a turn.
+            if current_job is not None:
+                current_key = (current_job.created_at, str(current_job.id))
+                for job_id, created_at in rows:
+                    if (created_at, str(job_id)) > current_key:
+                        return str(job_id)
+
+            # Wrap around to the oldest job.
+            return str(rows[0][0])
+
     async def claim(self) -> Chunk | None:
+        batch_size = getattr(self._settings, "worker_round_robin_batch", 1)
+
+        # Try to keep claiming from the current job until its batch is exhausted.
+        if self._current_job_id is not None and self._chunks_in_round < batch_size:
+            chunk = await self._claim_from_job(self._current_job_id)
+            if chunk is not None:
+                self._chunks_in_round += 1
+                return chunk
+
+        # Move to the next job in round-robin order.
+        next_job_id = await self._next_job_id()
+        if next_job_id is None:
+            return None
+
+        chunk = await self._claim_from_job(next_job_id)
+        if chunk is None:
+            # The job may have finished while we were switching. Reset and try again.
+            self._current_job_id = None
+            self._chunks_in_round = 0
+            return None
+
+        self._current_job_id = next_job_id
+        self._chunks_in_round = 1
+        return chunk
+
+    async def _claim_from_job(self, job_id: str) -> Chunk | None:
         async with self._sessions() as session, session.begin():
             statement = (
                 select(Chunk)
                 .join(Job)
-                .where(Chunk.status == "pending", Job.status.in_({"queued", "running"}))
-                .order_by(Job.created_at, Chunk.position)
+                .where(
+                    Chunk.status == "pending",
+                    Chunk.job_id == job_id,
+                    Job.status.in_({"queued", "running"}),
+                )
+                .order_by(Chunk.position)
                 .with_for_update(skip_locked=True)
                 .limit(1)
                 .options(selectinload(Chunk.job))

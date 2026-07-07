@@ -47,16 +47,8 @@ async def create_job(
     await session.commit()
     await session.refresh(job)
 
-    # Dispatch chunks to Celery (best-effort: chunks are persisted as pending
-    # and can be re-dispatched if the broker is temporarily unavailable).
-    try:
-        from awaaz.celery_tasks import process_chunk
-
-        for chunk in chunks:
-            process_chunk.delay(chunk.id)
-    except Exception:
-        pass
-
+    # Chunks are persisted as pending; the QueueWorker will poll and process
+    # them in round-robin order across active jobs.
     return job
 
 
@@ -133,15 +125,6 @@ async def set_job_state(session: AsyncSession, job_id: str, action: str) -> Job:
         for chunk in pending_chunks:
             chunk.status = "cancelled"
             chunk.updated_at = utc_now()
-        # Best-effort: revoke any queued Celery tasks for this job's chunks.
-        try:
-            from awaaz.celery_tasks import app as celery_app
-
-            celery_app.control.revoke(
-                [f"chunk-{chunk.id}" for chunk in pending_chunks], terminate=True,
-            )
-        except Exception:
-            pass
 
     if action == "pause":
         # Mark pending chunks as paused so the worker stops picking them up.
@@ -175,21 +158,6 @@ async def set_job_state(session: AsyncSession, job_id: str, action: str) -> Job:
     await session.commit()
     await session.refresh(job)
 
-    # On resume, re-dispatch the now-pending chunks to Celery.
-    if action == "resume":
-        try:
-            from awaaz.celery_tasks import process_chunk
-
-            resumable = (
-                await session.scalars(
-                    select(Chunk).where(
-                        Chunk.job_id == job.id, Chunk.status == "pending"
-                    )
-                )
-            ).all()
-            for chunk in resumable:
-                process_chunk.delay(chunk.id)
-        except Exception:
-            pass
-
+    # On resume, chunks are already marked pending; the QueueWorker will pick
+    # them up in round-robin order.
     return job

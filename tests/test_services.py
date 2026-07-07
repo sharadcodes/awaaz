@@ -125,6 +125,64 @@ async def test_worker_recovery_requeues_abandoned_chunk(
         assert recovered.status == "pending"
 
 
+@pytest.mark.asyncio
+async def test_worker_processes_jobs_in_round_robin_order(
+    sessions: async_sessionmaker[AsyncSession], tmp_path: Path
+) -> None:
+    """With one worker, chunks from multiple active jobs should be interleaved."""
+    from unittest.mock import AsyncMock, patch
+
+    settings = Settings(database_url="sqlite+aiosqlite://", data_dir=tmp_path)
+    async with sessions() as session:
+        for title in ("Book A", "Book B"):
+            document = Document(title=title, text="One. Two. Three.")
+            session.add(document)
+            await session.flush()
+            job = Job(
+                document_id=document.id,
+                document_revision=1,
+                status="queued",
+                backend="kokoro",
+                model="kokoro",
+                voice="af_bella",
+                chunking_mode="sentence",
+                character_limit=10,
+            )
+            session.add(job)
+            await session.flush()
+            for position, text in enumerate(["One.", "Two.", "Three."]):
+                session.add(Chunk(job_id=job.id, position=position, text=text))
+        await session.commit()
+
+    worker = QueueWorker(sessions, settings, AdapterFactory(settings))
+    await worker.recover_abandoned()
+
+    processed_order: list[str] = []
+    with patch("awaaz.db.session_factory", sessions), patch.object(
+        worker._adapters, "create", return_value=AsyncMock()
+    ) as mock_create:
+        mock_adapter = AsyncMock()
+        mock_adapter.synthesize.return_value = None
+        mock_create.return_value = mock_adapter
+        for _ in range(6):
+            await worker.process_once()
+            async with sessions() as session:
+                completed = (
+                    await session.scalars(
+                        select(Chunk)
+                        .where(Chunk.status == "completed")
+                        .order_by(Chunk.updated_at)
+                    )
+                ).all()
+                if len(completed) > len(processed_order):
+                    latest = completed[-1]
+                    job = await session.get(Job, latest.job_id)
+                    document = await session.get(Document, job.document_id) if job else None
+                    processed_order.append(document.title if document else str(latest.job_id))
+
+    assert processed_order == ["Book A", "Book B", "Book A", "Book B", "Book A", "Book B"]
+
+
 def test_adapter_factory_rejects_unknown_backend() -> None:
     with pytest.raises(JobError, match="unknown backend"):
         AdapterFactory(Settings()).create("missing", "model", "voice")

@@ -43,3 +43,22 @@ async def test_adapter_raises_custom_error_on_server_failure(tmp_path: Path) -> 
 
     assert error.value.retryable is True
 
+
+@pytest.mark.asyncio
+async def test_adapter_writes_silent_wav_for_empty_response(tmp_path: Path) -> None:
+    """Non-speakable text (e.g. '***') gets a silent WAV placeholder, not an error."""
+    import wave
+
+    transport = httpx.MockTransport(lambda _: httpx.Response(200, content=b""))
+    adapter = OpenAiTtsAdapter(BackendSettings(), transport=transport)
+    target = tmp_path / "chunk.wav"
+
+    await adapter.synthesize("***", target)
+
+    assert target.exists()
+    with wave.open(str(target), "rb") as wav:
+        assert wav.getnchannels() == 1
+        assert wav.getsampwidth() == 2
+        assert wav.getframerate() == 24000
+        assert wav.getnframes() > 0
+
