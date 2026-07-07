@@ -227,7 +227,9 @@ async def edit_document(
 
 
 @router.get("/documents/{document_id}/cover")
-async def download_cover(document_id: str, session: AsyncSession = Depends(get_session)):
+async def download_cover(
+    document_id: str, session: AsyncSession = Depends(get_session)
+) -> FileResponse:
     document = await get_document(session, document_id)
     if not document.cover_path or not Path(document.cover_path).is_file():
         raise HTTPException(status_code=404, detail="cover not found")
@@ -265,7 +267,7 @@ async def add_collection(
 ) -> CollectionRead:
     try:
         collection = await create_collection(session, request.name)
-    except Exception as error:
+    except AwaazError as error:
         raise _bad_request(error) from error
     return CollectionRead(
         id=collection.id,

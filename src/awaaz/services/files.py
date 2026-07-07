@@ -1,6 +1,7 @@
 import asyncio
 import xml.etree.ElementTree as ET
 from pathlib import Path
+from typing import Any
 
 import aiofiles
 from fastapi import UploadFile
@@ -53,7 +54,7 @@ async def extract_text(source: Path) -> str:
     return await asyncio.to_thread(target.read_text, encoding="utf-8")
 
 
-def _parse_opf_metadata(opf_path: Path) -> dict:
+def _parse_opf_metadata(opf_path: Path) -> dict[str, Any]:
     try:
         tree = ET.parse(opf_path)
     except ET.ParseError:
@@ -93,7 +94,7 @@ def _parse_opf_metadata(opf_path: Path) -> dict:
     }
 
 
-async def extract_metadata(source: Path) -> dict:
+async def extract_metadata(source: Path) -> dict[str, Any]:
     """Extract metadata from EPUB using Calibre's ebook-meta output."""
     if source.suffix.lower() != ".epub":
         return {}

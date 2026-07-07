@@ -1,5 +1,6 @@
 import uuid
 from datetime import UTC, datetime
+from typing import Any
 
 import sqlalchemy as sa
 from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Table, Text, UniqueConstraint
@@ -35,7 +36,7 @@ class Document(Base):
     series: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
     tags: Mapped[str | None] = mapped_column(String(500), nullable=True)
     cover_path: Mapped[str | None] = mapped_column(Text, nullable=True)
-    metadata_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    metadata_json: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     word_count: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)

@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -27,7 +28,7 @@ class DocumentRead(BaseModel):
     series: str | None
     tags: str | None
     cover_path: str | None
-    metadata_json: dict | None
+    metadata_json: dict[str, Any] | None
     word_count: int
     created_at: datetime
     updated_at: datetime
@@ -37,6 +38,8 @@ class DocumentRead(BaseModel):
     @classmethod
     def _extract_collection_names(cls, value: object) -> list[str]:
         if value is None:
+            return []
+        if not isinstance(value, list | tuple):
             return []
         return [getattr(item, "name", str(item)) for item in value]
 

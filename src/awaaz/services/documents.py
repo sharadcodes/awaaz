@@ -1,4 +1,5 @@
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -71,7 +72,11 @@ async def list_collections(session: AsyncSession) -> list[tuple[Collection, int]
 async def create_collection(session: AsyncSession, name: str) -> Collection:
     collection = Collection(name=name.strip())
     session.add(collection)
-    await session.commit()
+    try:
+        await session.commit()
+    except IntegrityError as error:
+        await session.rollback()
+        raise DocumentError("collection name must be unique") from error
     await session.refresh(collection)
     return collection
 
