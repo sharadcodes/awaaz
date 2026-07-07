@@ -10,8 +10,33 @@ def test_paragraph_mode_preserves_paragraphs() -> None:
     ]
 
 
+def test_paragraph_mode_one_chunk_per_paragraph_without_packing() -> None:
+    # Multiple sentences in one paragraph stay together as a single chunk
+    # even when they would fit individually under the limit.
+    assert chunk_text("One. Two. Three.", ChunkingMode.PARAGRAPH, 1_000) == ["One. Two. Three."]
+
+
+def test_paragraph_mode_never_splits_even_when_oversized() -> None:
+    # The character limit is bypassed in non-character modes; an oversized
+    # paragraph is sent as a single chunk regardless of the limit.
+    assert chunk_text("Short. Also short.", ChunkingMode.PARAGRAPH, 12) == ["Short. Also short."]
+
+
 def test_line_mode_ignores_empty_lines() -> None:
     assert chunk_text("one\n\n two ", ChunkingMode.LINE, 1_000) == ["one", "two"]
+
+
+def test_line_mode_one_chunk_per_line_without_packing() -> None:
+    assert chunk_text("alpha beta\ngamma delta", ChunkingMode.LINE, 1_000) == [
+        "alpha beta",
+        "gamma delta",
+    ]
+
+
+def test_line_mode_never_splits_even_when_oversized() -> None:
+    assert chunk_text("alpha beta gamma delta", ChunkingMode.LINE, 10) == [
+        "alpha beta gamma delta",
+    ]
 
 
 def test_sentence_mode_splits_at_sentence_boundaries() -> None:
@@ -19,6 +44,12 @@ def test_sentence_mode_splits_at_sentence_boundaries() -> None:
         "One.",
         "Two?",
         "Three!",
+    ]
+
+
+def test_sentence_mode_never_splits_even_when_oversized() -> None:
+    assert chunk_text("alpha beta gamma delta", ChunkingMode.SENTENCE, 10) == [
+        "alpha beta gamma delta",
     ]
 
 
@@ -38,7 +69,8 @@ def test_character_mode_rejects_word_longer_than_limit() -> None:
         chunk_text("extraordinary", ChunkingMode.CHARACTER, 5)
 
 
-def test_whole_mode_rejects_oversized_text() -> None:
-    with pytest.raises(ChunkingError, match="whole text exceeds"):
-        chunk_text("too long", ChunkingMode.WHOLE, 4)
+def test_whole_mode_returns_single_chunk_regardless_of_size() -> None:
+    # The character limit is bypassed in whole mode; the entire text is sent
+    # as one chunk even when it exceeds the limit.
+    assert chunk_text("too long for the limit", ChunkingMode.WHOLE, 4) == ["too long for the limit"]
 

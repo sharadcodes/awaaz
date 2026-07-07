@@ -70,16 +70,12 @@ def chunk_text(text: str, mode: ChunkingMode, character_limit: int) -> list[str]
     if not normalized:
         raise ChunkingError("text cannot be empty")
     if mode is ChunkingMode.WHOLE:
-        if len(normalized) > character_limit:
-            raise ChunkingError(f"whole text exceeds character limit of {character_limit}")
         return [normalized]
     if mode is ChunkingMode.LINE:
-        parts = [line.strip() for line in normalized.splitlines() if line.strip()]
-        return [chunk for part in parts for chunk in _pack(_sentences(part), character_limit)]
+        return [line.strip() for line in normalized.splitlines() if line.strip()]
     if mode is ChunkingMode.PARAGRAPH:
-        parts = [part.strip() for part in _PARAGRAPH_BOUNDARY.split(normalized) if part.strip()]
-        return [chunk for part in parts for chunk in _pack(_sentences(part), character_limit)]
+        return [part.strip() for part in _PARAGRAPH_BOUNDARY.split(normalized) if part.strip()]
     if mode is ChunkingMode.SENTENCE:
-        return [chunk for sentence in _sentences(normalized) for chunk in _pack([sentence], character_limit)]
+        return _sentences(normalized)
     return _pack(_sentences(normalized), character_limit)
 
