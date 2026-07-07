@@ -180,7 +180,13 @@ async def test_worker_processes_jobs_in_round_robin_order(
                     document = await session.get(Document, job.document_id) if job else None
                     processed_order.append(document.title if document else str(latest.job_id))
 
-    assert processed_order == ["Book A", "Book B", "Book A", "Book B", "Book A", "Book B"]
+    # Round-robin should interleave chunks from both jobs. The first job
+    # depends on UUID ordering (created_at is identical for same-flush jobs),
+    # so only assert that the two books alternate — not which goes first.
+    assert len(processed_order) == 6
+    assert len(set(processed_order)) == 2
+    for i in range(1, len(processed_order)):
+        assert processed_order[i] != processed_order[i - 1], "jobs should alternate"
 
 
 def test_adapter_factory_rejects_unknown_backend() -> None:

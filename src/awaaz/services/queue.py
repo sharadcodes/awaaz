@@ -52,7 +52,7 @@ class QueueWorker:
                         .distinct()
                     )
                 )
-                .order_by(Job.created_at)
+                .order_by(Job.created_at, Job.id)
             )
             rows = (await session.execute(pending_jobs)).all()
             if not rows:
