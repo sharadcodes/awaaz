@@ -1,5 +1,9 @@
 # Awaaz
 
+<p align="center">
+  <img src="docs/banners/b1.webp" alt="Awaaz promotional banner" width="100%">
+</p>
+
 **Resumable, API-first audiobook generation for long-form content.**
 
 Awaaz turns EPUB, TXT, or pasted text into MP3 audiobooks through a browser-based library
