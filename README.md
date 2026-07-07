@@ -4,6 +4,11 @@
   <img src="docs/banners/b1.webp" alt="Awaaz promotional banner" width="100%">
 </p>
 
+<p align="center">
+  <a href="https://github.com/sharadcodes/awaaz/actions/workflows/ci.yml"><img src="https://github.com/sharadcodes/awaaz/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/sharadcodes/awaaz/releases"><img src="https://img.shields.io/github/v/release/sharadcodes/awaaz" alt="Latest release"></a>
+</p>
+
 **Resumable, API-first audiobook generation for long-form content.**
 
 Awaaz turns EPUB, TXT, or pasted text into MP3 audiobooks through a browser-based library
@@ -48,7 +53,7 @@ WAV chunks survive worker restarts.
 - Extract EPUB text, metadata, and cover art with Calibre.
 - Search and organize a library by collection, author, series, and tag.
 - Edit extracted manuscripts with optimistic revision checks.
-- Select backend, model, voice, speed, chunking strategy, and character limit.
+- Select backend, model, voice, speed, chunking strategy, and character limit with a live chunk-count preview.
 - Pause, resume, cancel, inspect, and retry synthesis jobs.
 - Generate through bundled Supertonic and Kokoro services or a custom OpenAI-compatible endpoint.
 - Use the UI, versioned REST API, or OpenAI-compatible `/v1/audio/speech` endpoint.
@@ -192,7 +197,24 @@ See [API workflow](docs/api.md) for full request examples.
 
 ## Development checks
 
-All checks run inside Docker to match project dependencies and system tools:
+Fast local checks (requires `uv` and `npm`):
+
+```bash
+# Backend
+uv sync --group dev
+uv run ruff check .
+uv run mypy src/awaaz
+uv run pytest
+
+# Frontend
+cd frontend
+npm ci
+npx tsc --noEmit -p tsconfig.app.json
+npx jest
+npx vite build
+```
+
+All checks also run inside Docker to match project dependencies and system tools:
 
 ```bash
 # Backend tests and coverage
