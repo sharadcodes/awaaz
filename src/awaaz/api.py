@@ -129,7 +129,7 @@ async def add_text_document(
     document = Document(title=request.title.strip(), text=text, word_count=len(text.split()))
     session.add(document)
     await session.commit()
-    await session.refresh(document)
+    await session.refresh(document, ["collections"])
     return document
 
 
@@ -168,7 +168,7 @@ async def upload_document(
     )
     session.add(document)
     await session.commit()
-    await session.refresh(document)
+    await session.refresh(document, ["collections"])
     return document
 
 

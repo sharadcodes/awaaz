@@ -32,9 +32,9 @@ class DocumentRead(BaseModel):
     word_count: int
     created_at: datetime
     updated_at: datetime
-    collection_names: list[str] = []
+    collections: list[str] = Field(serialization_alias="collection_names", default=[])
 
-    @field_validator("collection_names", mode="before")
+    @field_validator("collections", mode="before")
     @classmethod
     def _extract_collection_names(cls, value: object) -> list[str]:
         if value is None:

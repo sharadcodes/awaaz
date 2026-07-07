@@ -8,7 +8,9 @@ from awaaz.models import Collection, Document, Job, document_collections, utc_no
 
 
 async def get_document(session: AsyncSession, document_id: str) -> Document:
-    document = await session.get(Document, document_id)
+    document = await session.scalar(
+        select(Document).where(Document.id == document_id).options(selectinload(Document.collections))
+    )
     if document is None:
         raise DocumentError("document not found")
     return document
@@ -35,7 +37,7 @@ async def update_document_text(
     document.revision += 1
     document.updated_at = utc_now()
     await session.commit()
-    await session.refresh(document)
+    await session.refresh(document, ["collections"])
     return document
 
 
@@ -52,7 +54,11 @@ async def list_documents_with_jobs(session: AsyncSession) -> list[Document]:
 
 
 async def get_collection(session: AsyncSession, collection_id: str) -> Collection:
-    collection = await session.get(Collection, collection_id)
+    collection = await session.scalar(
+        select(Collection)
+        .where(Collection.id == collection_id)
+        .options(selectinload(Collection.documents))
+    )
     if collection is None:
         raise DocumentError("collection not found")
     return collection
@@ -93,8 +99,11 @@ async def update_collection(
         )
         collection.documents = list(documents.all())
     collection.updated_at = utc_now()
-    await session.commit()
-    await session.refresh(collection)
+    try:
+        await session.commit()
+    except IntegrityError as error:
+        await session.rollback()
+        raise DocumentError("collection name must be unique") from error
     return collection
 
 
