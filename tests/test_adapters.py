@@ -61,4 +61,3 @@ async def test_adapter_writes_silent_wav_for_empty_response(tmp_path: Path) -> N
         assert wav.getsampwidth() == 2
         assert wav.getframerate() == 24000
         assert wav.getnframes() > 0
-

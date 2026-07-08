@@ -9,7 +9,9 @@ from awaaz.models import Collection, Document, Job, document_collections, utc_no
 
 async def get_document(session: AsyncSession, document_id: str) -> Document:
     document = await session.scalar(
-        select(Document).where(Document.id == document_id).options(selectinload(Document.collections))
+        select(Document)
+        .where(Document.id == document_id)
+        .options(selectinload(Document.collections))
     )
     if document is None:
         raise DocumentError("document not found")
@@ -94,9 +96,7 @@ async def update_collection(
     if name is not None:
         collection.name = name.strip()
     if document_ids is not None:
-        documents = await session.scalars(
-            select(Document).where(Document.id.in_(document_ids))
-        )
+        documents = await session.scalars(select(Document).where(Document.id.in_(document_ids)))
         collection.documents = list(documents.all())
     collection.updated_at = utc_now()
     try:

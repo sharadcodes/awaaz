@@ -73,4 +73,3 @@ def test_whole_mode_returns_single_chunk_regardless_of_size() -> None:
     # The character limit is bypassed in whole mode; the entire text is sent
     # as one chunk even when it exceeds the limit.
     assert chunk_text("too long for the limit", ChunkingMode.WHOLE, 4) == ["too long for the limit"]
-

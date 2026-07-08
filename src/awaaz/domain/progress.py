@@ -14,4 +14,3 @@ def calculate_progress(total: int, completed: int, failed: int) -> Progress:
     processed = completed + failed
     percent = round(processed / total * 100, 2) if total else 0.0
     return Progress(total, completed, failed, processed, percent)
-
