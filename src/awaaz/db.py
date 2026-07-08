@@ -41,6 +41,7 @@ async def _adopt_legacy_schema() -> None:
     from alembic.config import Config
 
     async with engine.connect() as connection:
+
         def _inspect(conn: Connection) -> dict[str, Any]:
             inspector = inspect(conn)
             table_names = set(inspector.get_table_names())
@@ -59,6 +60,7 @@ async def _adopt_legacy_schema() -> None:
     alembic_ini = Path(__file__).resolve().parents[2] / "alembic.ini"
     cfg = Config(str(alembic_ini))
     async with engine.begin() as connection:
+
         def _stamp(conn: Connection) -> None:
             cfg.attributes["connection"] = conn
             command.stamp(cfg, "head")
@@ -75,6 +77,7 @@ async def _run_alembic_upgrade() -> None:
     cfg.set_main_option("sqlalchemy.url", settings.database_url)
 
     async with engine.begin() as connection:
+
         def _upgrade(conn: Connection) -> None:
             cfg.attributes["connection"] = conn
             command.upgrade(cfg, "head")

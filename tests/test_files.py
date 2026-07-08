@@ -17,4 +17,3 @@ def test_future_loader_type_fails_fast() -> None:
 
 def test_path_like_filename_is_sanitized() -> None:
     assert validate_upload(str(Path("unsafe") / "book.txt")) == ".txt"
-

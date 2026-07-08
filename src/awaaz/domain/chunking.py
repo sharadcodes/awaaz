@@ -78,4 +78,3 @@ def chunk_text(text: str, mode: ChunkingMode, character_limit: int) -> list[str]
     if mode is ChunkingMode.SENTENCE:
         return _sentences(normalized)
     return _pack(_sentences(normalized), character_limit)
-

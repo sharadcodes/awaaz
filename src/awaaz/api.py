@@ -1,11 +1,21 @@
 import asyncio
 import json
+import shutil
 import uuid
 from collections.abc import AsyncIterator
 from pathlib import Path
 
 import httpx
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    UploadFile,
+    status,
+)
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import select
@@ -112,12 +122,18 @@ async def list_backend_voices(
     except Exception:
         return BackendVoicesResponse(backend=name, voices=[backend.voice])
     # Supertonic returns {"styles": [{"name": "..."}, ...]}.
-    # Kokoro returns {"voices": ["...", ...]}.
+    # Kokoro returns {"voices": ["...", ...]} or {"voices": [{"id": "...", "name": "..."}, ...]}.
     voices: list[str] = []
     for style in data.get("styles", []):
         if isinstance(style, dict) and "name" in style:
             voices.append(str(style["name"]))
-    voices.extend(data.get("voices", []))
+    for voice_item in data.get("voices", []):
+        if isinstance(voice_item, dict):
+            voice_id = voice_item.get("id") or voice_item.get("name")
+            if voice_id:
+                voices.append(str(voice_id))
+        elif voice_item:
+            voices.append(str(voice_item))
     return BackendVoicesResponse(backend=name, voices=voices)
 
 
@@ -133,9 +149,7 @@ async def add_text_document(
     return document
 
 
-@router.post(
-    "/documents/upload", response_model=DocumentRead, status_code=status.HTTP_201_CREATED
-)
+@router.post("/documents/upload", response_model=DocumentRead, status_code=status.HTTP_201_CREATED)
 async def upload_document(
     file: UploadFile = File(...),
     title: str | None = Form(default=None),
@@ -145,31 +159,46 @@ async def upload_document(
     filename = Path((file.filename or "upload").replace("\\", "/")).name
     try:
         extension = validate_upload(filename)
-        stored = settings.uploads_dir / f"{uuid.uuid4()}{extension}"
+    except AwaazError as error:
+        raise _bad_request(error) from error
+
+    stored = settings.uploads_dir / f"{uuid.uuid4()}{extension}"
+    cover_target = settings.uploads_dir / f"{uuid.uuid4()}.cover.jpg"
+    try:
         await save_upload(file, stored, settings.max_upload_bytes)
         text = await extract_text(stored)
         metadata = await extract_metadata(stored)
         cover_path = None
-        cover_target = settings.uploads_dir / f"{uuid.uuid4()}.cover.jpg"
         if await extract_cover(stored, cover_target):
             cover_path = str(cover_target)
-    except AwaazError as error:
-        raise _bad_request(error) from error
-    document = Document(
-        title=(title or metadata.get("title") or Path(filename).stem).strip(),
-        source_filename=filename,
-        text=text.strip(),
-        author=_join_authors(metadata.get("authors")),
-        series=metadata.get("series"),
-        tags=", ".join(metadata.get("tags", [])) if metadata.get("tags") else None,
-        cover_path=cover_path,
-        metadata_json=metadata,
-        word_count=len(text.split()),
-    )
-    session.add(document)
-    await session.commit()
-    await session.refresh(document, ["collections"])
-    return document
+
+        document = Document(
+            title=(title or metadata.get("title") or Path(filename).stem).strip(),
+            source_filename=filename,
+            text=text.strip(),
+            author=_join_authors(metadata.get("authors")),
+            series=metadata.get("series"),
+            tags=", ".join(metadata.get("tags", [])) if metadata.get("tags") else None,
+            cover_path=cover_path,
+            metadata_json=metadata,
+            word_count=len(text.split()),
+        )
+        session.add(document)
+        await session.commit()
+        await session.refresh(document, ["collections"])
+        return document
+    except Exception as error:
+        if cover_target.exists():
+            cover_target.unlink(missing_ok=True)
+        if isinstance(error, AwaazError):
+            raise _bad_request(error) from error
+        raise error
+    finally:
+        if stored.exists():
+            stored.unlink(missing_ok=True)
+        extracted = stored.with_suffix(".extracted.txt")
+        if extracted.exists():
+            extracted.unlink(missing_ok=True)
 
 
 def _join_authors(authors: list[str] | None) -> str | None:
@@ -203,9 +232,7 @@ async def list_documents(
 
 
 @router.get("/documents/{document_id}", response_model=DocumentRead)
-async def read_document(
-    document_id: str, session: AsyncSession = Depends(get_session)
-) -> Document:
+async def read_document(document_id: str, session: AsyncSession = Depends(get_session)) -> Document:
     try:
         return await get_document(session, document_id)
     except AwaazError as error:
@@ -238,10 +265,12 @@ async def download_cover(
 
 @router.delete("/documents/{document_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def remove_document(
-    document_id: str, session: AsyncSession = Depends(get_session)
+    document_id: str,
+    session: AsyncSession = Depends(get_session),
+    settings: Settings = Depends(get_settings),
 ) -> None:
     try:
-        await delete_document(session, document_id)
+        await delete_document(session, document_id, settings)
     except AwaazError as error:
         raise _bad_request(error) from error
 
@@ -341,9 +370,7 @@ async def read_job(job_id: str, session: AsyncSession = Depends(get_session)) ->
 
 
 @router.get("/jobs/{job_id}/chunks", response_model=list[ChunkRead])
-async def list_chunks(
-    job_id: str, session: AsyncSession = Depends(get_session)
-) -> list[Chunk]:
+async def list_chunks(job_id: str, session: AsyncSession = Depends(get_session)) -> list[Chunk]:
     await get_job(session, job_id)
     return list(
         (
@@ -376,7 +403,7 @@ async def job_events(job_id: str) -> StreamingResponse:
                     result = await serialize_job(session, await get_job(session, job_id))
                     payload = result.model_dump(mode="json")
                 except AwaazError:
-                    yield "event: error\ndata: {\"detail\":\"job not found\"}\n\n"
+                    yield 'event: error\ndata: {"detail":"job not found"}\n\n'
                     return
             encoded = json.dumps(payload, separators=(",", ":"))
             if encoded != last_payload:
@@ -447,3 +474,72 @@ async def speech(
     if process.returncode != 0:
         raise HTTPException(status_code=502, detail=stderr.decode(errors="replace")[-500:])
     return FileResponse(mp3, media_type="audio/mpeg", filename="speech.mp3")
+
+
+class PreviewRequest(BaseModel):
+    voice: str
+    model: str
+    speed: float = Field(default=1.0, ge=0.5, le=2.0)
+    text: str = Field(
+        default="Hello! This is a preview of the voice you selected in Awaaz.",
+        min_length=1,
+        max_length=500,
+    )
+
+
+@router.post("/backends/{name}/preview")
+async def preview_voice(
+    name: str,
+    request: PreviewRequest,
+    background_tasks: BackgroundTasks,
+    settings: Settings = Depends(get_settings),
+) -> FileResponse:
+    backend = getattr(settings, name, None)
+    if backend is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"unknown backend: {name}"
+        )
+    if len(request.text) > backend.max_characters:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"input exceeds backend maximum of {backend.max_characters} characters",
+        )
+    request_id = str(uuid.uuid4())
+    directory = settings.audio_dir / "previews" / request_id
+    directory.mkdir(parents=True, exist_ok=True)
+    wav = directory / "preview.wav"
+    adapter = AdapterFactory(settings).create(
+        name,
+        request.model,
+        request.voice,
+    )
+    try:
+        await adapter.synthesize(request.text, wav, speed=request.speed)
+    except AwaazError as error:
+        shutil.rmtree(directory, ignore_errors=True)
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(error)) from error
+
+    mp3 = directory / "preview.mp3"
+    process = await asyncio.create_subprocess_exec(
+        "ffmpeg",
+        "-y",
+        "-i",
+        str(wav),
+        "-codec:a",
+        "libmp3lame",
+        "-b:a",
+        "128k",
+        str(mp3),
+        stdout=asyncio.subprocess.DEVNULL,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    _, stderr = await process.communicate()
+    if process.returncode != 0:
+        shutil.rmtree(directory, ignore_errors=True)
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=stderr.decode(errors="replace")[-500:],
+        )
+
+    background_tasks.add_task(shutil.rmtree, directory, ignore_errors=True)
+    return FileResponse(mp3, media_type="audio/mpeg", filename="preview.mp3")

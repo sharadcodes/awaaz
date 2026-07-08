@@ -1,0 +1,38 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.11.10
+    hooks:
+      - id: ruff
+        args: [ --fix ]
+      - id: ruff-format
+
+  - repo: local
+    hooks:
+      - id: frontend-prettier
+        name: Frontend Prettier
+        entry: npm --prefix frontend run format
+        language: system
+        files: ^frontend/.*\.([jt]sx?|css|json)$
+        pass_filenames: false
+
+      - id: frontend-eslint
+        name: Frontend ESLint
+        entry: npm --prefix frontend run lint
+        language: system
+        files: ^frontend/.*\.([jt]sx?)$
+        pass_filenames: false
+
+      - id: mypy
+        name: mypy
+        entry: uv run mypy src/awaaz
+        language: system
+        files: ^src/awaaz/.*\.py$
+        pass_filenames: false

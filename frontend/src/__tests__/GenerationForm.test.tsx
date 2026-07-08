@@ -17,7 +17,9 @@ const backends: Backend[] = [
 
 test('submits selected generation settings', async () => {
   const onSubmit = jest.fn();
-  render(<GenerationForm backends={backends} disabled={false} onSubmit={onSubmit} text="Hello world." />);
+  render(
+    <GenerationForm backends={backends} disabled={false} onSubmit={onSubmit} text="Hello world." />,
+  );
 
   await screen.findByRole('combobox', { name: 'Voice' });
 

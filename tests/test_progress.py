@@ -10,4 +10,3 @@ def test_progress_uses_completed_and_failed_chunks() -> None:
 
 def test_empty_job_has_zero_progress() -> None:
     assert calculate_progress(0, 0, 0).percent == 0.0
-

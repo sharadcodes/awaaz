@@ -20,4 +20,3 @@ input above configured backend limit.
 Job states: `queued`, `running`, `paused`, `failed`, `cancelled`, `completed`. Chunk states:
 `pending`, `processing`, `failed`, `completed`. Worker startup resets abandoned `processing`
 chunks to `pending`. Atomic file replacement prevents partial WAV checkpoints.
-

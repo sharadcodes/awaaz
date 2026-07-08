@@ -1,15 +1,21 @@
+import shutil
+from pathlib import Path
+
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from awaaz.config import Settings
 from awaaz.domain.exceptions import DocumentError
 from awaaz.models import Collection, Document, Job, document_collections, utc_now
 
 
 async def get_document(session: AsyncSession, document_id: str) -> Document:
     document = await session.scalar(
-        select(Document).where(Document.id == document_id).options(selectinload(Document.collections))
+        select(Document)
+        .where(Document.id == document_id)
+        .options(selectinload(Document.collections))
     )
     if document is None:
         raise DocumentError("document not found")
@@ -94,9 +100,7 @@ async def update_collection(
     if name is not None:
         collection.name = name.strip()
     if document_ids is not None:
-        documents = await session.scalars(
-            select(Document).where(Document.id.in_(document_ids))
-        )
+        documents = await session.scalars(select(Document).where(Document.id.in_(document_ids)))
         collection.documents = list(documents.all())
     collection.updated_at = utc_now()
     try:
@@ -113,7 +117,7 @@ async def delete_collection(session: AsyncSession, collection_id: str) -> None:
     await session.commit()
 
 
-async def delete_document(session: AsyncSession, document_id: str) -> None:
+async def delete_document(session: AsyncSession, document_id: str, settings: Settings) -> None:
     document = await get_document(session, document_id)
     active = await session.scalar(
         select(Job.id).where(
@@ -123,5 +127,24 @@ async def delete_document(session: AsyncSession, document_id: str) -> None:
     )
     if active is not None:
         raise DocumentError("cancel active jobs before deleting")
+
+    # Get associated job IDs to delete their audio files
+    jobs = await session.scalars(select(Job).where(Job.document_id == document_id))
+    job_ids = [job.id for job in jobs]
+
+    cover_path = document.cover_path
+
     await session.delete(document)
     await session.commit()
+
+    # Delete cover image if it exists
+    if cover_path:
+        cover_file = Path(cover_path)
+        if cover_file.is_file():
+            cover_file.unlink(missing_ok=True)
+
+    # Delete all generated job audio folders
+    for job_id in job_ids:
+        job_audio_dir = settings.audio_dir / job_id
+        if job_audio_dir.is_dir():
+            shutil.rmtree(job_audio_dir, ignore_errors=True)

@@ -82,6 +82,25 @@ export function listBackendVoices(name: string): Promise<{ backend: string; voic
   return request(`/api/v1/backends/${name}/voices`);
 }
 
+export async function previewVoice(
+  backendName: string,
+  params: { voice: string; model: string; speed?: number; text?: string },
+): Promise<Blob> {
+  const response = await fetch(`/api/v1/backends/${backendName}/preview`, {
+    method: 'POST',
+    headers: jsonHeaders,
+    body: JSON.stringify(params),
+  });
+  if (!response.ok) {
+    const body = (await response.json().catch(() => ({}))) as { detail?: string };
+    throw new ApiError(
+      body.detail ?? `Preview failed with status ${response.status}`,
+      response.status,
+    );
+  }
+  return response.blob();
+}
+
 export function createTextDocument(title: string, text: string): Promise<Document> {
   return request('/api/v1/documents', {
     method: 'POST',

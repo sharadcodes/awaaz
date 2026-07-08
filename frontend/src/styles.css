@@ -132,8 +132,12 @@ h3 {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  transition: background 150ms ease, border-color 150ms ease, color 150ms ease,
-    transform 150ms ease, box-shadow 150ms ease;
+  transition:
+    background 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease,
+    transform 150ms ease,
+    box-shadow 150ms ease;
 }
 
 .primary-button {
@@ -218,7 +222,9 @@ select {
   outline: 0;
   background: var(--bg);
   padding: 10px 12px;
-  transition: border-color 150ms ease, box-shadow 150ms ease;
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease;
 }
 
 input:focus,
@@ -396,7 +402,9 @@ label small,
   background: transparent;
   color: var(--text-muted);
   cursor: pointer;
-  transition: background 150ms ease, color 150ms ease;
+  transition:
+    background 150ms ease,
+    color 150ms ease;
 }
 
 .topbar-icon-button:hover {
@@ -530,7 +538,9 @@ label small,
   font-size: 14px;
   font-weight: 500;
   text-align: left;
-  transition: background 150ms ease, color 150ms ease;
+  transition:
+    background 150ms ease,
+    color 150ms ease;
 }
 
 .nav-item-label {
@@ -649,7 +659,9 @@ label small,
   border: 0;
   border-radius: 8px;
   cursor: pointer;
-  transition: background 150ms ease, color 150ms ease;
+  transition:
+    background 150ms ease,
+    color 150ms ease;
 }
 
 .collection-row:hover {
@@ -704,7 +716,10 @@ label small,
   font-size: 16px;
   line-height: 1;
   opacity: 0;
-  transition: opacity 150ms ease, background 150ms ease, color 150ms ease;
+  transition:
+    opacity 150ms ease,
+    background 150ms ease,
+    color 150ms ease;
 }
 
 .collection-row:hover .collection-delete,
@@ -728,7 +743,10 @@ label small,
   background: transparent;
   color: var(--text-muted);
   opacity: 0;
-  transition: opacity 150ms ease, background 150ms ease, color 150ms ease;
+  transition:
+    opacity 150ms ease,
+    background 150ms ease,
+    color 150ms ease;
 }
 
 .collection-row:hover .collection-manage,
@@ -1022,7 +1040,10 @@ label small,
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
-  transition: background 150ms ease, color 150ms ease, box-shadow 150ms ease;
+  transition:
+    background 150ms ease,
+    color 150ms ease,
+    box-shadow 150ms ease;
 }
 
 .filter-chips button:hover,
@@ -1369,7 +1390,9 @@ label small,
   background: transparent;
   color: var(--text-muted);
   cursor: pointer;
-  transition: background 150ms ease, color 150ms ease;
+  transition:
+    background 150ms ease,
+    color 150ms ease;
 }
 
 .modal-close:hover {
@@ -1568,7 +1591,10 @@ label small,
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  transition: color 150ms ease, background 150ms ease, box-shadow 150ms ease;
+  transition:
+    color 150ms ease,
+    background 150ms ease,
+    box-shadow 150ms ease;
 }
 
 .segmented-control button:hover:not(.active) {
@@ -1607,7 +1633,10 @@ label small,
   border: 1.5px dashed var(--border-strong);
   border-radius: 14px;
   background: var(--surface);
-  transition: border-color 150ms ease, background 150ms ease, color 150ms ease;
+  transition:
+    border-color 150ms ease,
+    background 150ms ease,
+    color 150ms ease;
   cursor: pointer;
   padding: 24px 16px;
   text-align: center;
@@ -1741,6 +1770,10 @@ label small,
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
+}
+
+.generation-form .field-span {
+  grid-column: span 2;
 }
 
 .generation-form label {
@@ -2027,6 +2060,75 @@ label small,
   .filter-chips button,
   .value-chips button {
     padding: 6px 12px;
+  }
+}
+
+.voice-selector-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+}
+
+.voice-selector-row select {
+  flex: 1;
+}
+
+.preview-button {
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-secondary);
+  transition: all 150ms ease;
+  padding: 0;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.preview-button:hover:not(:disabled) {
+  background: var(--surface-hover);
+  border-color: var(--border-strong);
+  color: var(--text-strong);
+}
+
+.preview-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.preview-button.playing {
+  background: var(--danger-light);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.preview-button svg {
+  width: 16px;
+  height: 16px;
+}
+
+.preview-button .spinner-icon {
+  animation: spin 1s linear infinite;
+}
+
+.preview-error {
+  color: var(--danger);
+  font-size: 11px;
+  margin-top: 4px;
+  display: block;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
   }
 }
 
