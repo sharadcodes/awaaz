@@ -18,9 +18,7 @@ async def test_schema_collection_names(sessions: async_sessionmaker[AsyncSession
         await update_collection(session, collection.id, "c1", [doc.id])
         await session.commit()
 
-        result = await session.scalars(
-            select(Document).options(selectinload(Document.collections))
-        )
+        result = await session.scalars(select(Document).options(selectinload(Document.collections)))
         loaded = result.first()
         assert loaded is not None
         print("collections attr:", loaded.collections, type(loaded.collections))

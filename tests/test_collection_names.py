@@ -8,7 +8,9 @@ from awaaz.services.documents import create_collection, update_collection
 
 
 @pytest.mark.asyncio
-async def test_document_collection_names_are_loaded(sessions: async_sessionmaker[AsyncSession]) -> None:
+async def test_document_collection_names_are_loaded(
+    sessions: async_sessionmaker[AsyncSession],
+) -> None:
     async with sessions() as session:
         doc = Document(title="Doc", text="Hello")
         session.add(doc)
@@ -16,9 +18,7 @@ async def test_document_collection_names_are_loaded(sessions: async_sessionmaker
         collection = await create_collection(session, "c1")
         await update_collection(session, collection.id, "c1", [doc.id])
 
-        result = await session.scalars(
-            select(Document).options(selectinload(Document.collections))
-        )
+        result = await session.scalars(select(Document).options(selectinload(Document.collections)))
         loaded = result.first()
         assert loaded is not None
         print("loaded collections:", loaded.collections)

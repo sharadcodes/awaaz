@@ -107,4 +107,3 @@ class ChunkRead(BaseModel):
     status: str
     attempts: int
     error: str | None
-

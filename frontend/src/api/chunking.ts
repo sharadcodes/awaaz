@@ -19,9 +19,9 @@ function splitAtWords(text: string, limit: number): string[] {
   if (words.some((word) => word.length > limit)) {
     // A single word exceeds the limit; the backend raises an error here,
     // but for preview purposes we just count it as one chunk.
-    return words.filter((word) => word.length <= limit).concat(
-      words.filter((word) => word.length > limit).map((word) => word.slice(0, limit)),
-    );
+    return words
+      .filter((word) => word.length <= limit)
+      .concat(words.filter((word) => word.length > limit).map((word) => word.slice(0, limit)));
   }
   const chunks: string[] = [];
   let current = '';
@@ -66,11 +66,17 @@ export function countChunks(text: string, mode: ChunkingMode, characterLimit: nu
   if (mode === 'whole') return 1;
 
   if (mode === 'line') {
-    return normalized.split('\n').map((line) => line.trim()).filter(Boolean).length;
+    return normalized
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean).length;
   }
 
   if (mode === 'paragraph') {
-    return normalized.split(PARAGRAPH_BOUNDARY).map((part) => part.trim()).filter(Boolean).length;
+    return normalized
+      .split(PARAGRAPH_BOUNDARY)
+      .map((part) => part.trim())
+      .filter(Boolean).length;
   }
 
   if (mode === 'sentence') {

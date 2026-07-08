@@ -7,6 +7,7 @@ When invoked programmatically (e.g. from ``awaaz.db.create_schema``) the
 calling code may pass an existing connection via ``config.attributes[
 "connection"]`` to share a single transaction.
 """
+
 import asyncio
 from logging.config import fileConfig
 

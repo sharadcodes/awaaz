@@ -19,8 +19,15 @@ class Base(DeclarativeBase):
 document_collections = Table(
     "document_collections",
     Base.metadata,
-    sa.Column("document_id", String(36), ForeignKey("documents.id", ondelete="CASCADE"), primary_key=True),
-    sa.Column("collection_id", String(36), ForeignKey("collections.id", ondelete="CASCADE"), primary_key=True),
+    sa.Column(
+        "document_id", String(36), ForeignKey("documents.id", ondelete="CASCADE"), primary_key=True
+    ),
+    sa.Column(
+        "collection_id",
+        String(36),
+        ForeignKey("collections.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
 )
 
 
@@ -96,4 +103,3 @@ class Chunk(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     job: Mapped[Job] = relationship(back_populates="chunks")
-

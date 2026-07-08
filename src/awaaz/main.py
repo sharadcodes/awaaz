@@ -20,4 +20,3 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 app = FastAPI(title="Awaaz API", version="1.0.1", lifespan=lifespan)
 app.include_router(router)
 app.include_router(openai_router)
-

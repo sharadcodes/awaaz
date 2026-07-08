@@ -75,4 +75,3 @@ async def test_startup_recovers_interrupted_assembly(
         job = await session.get(Job, job_id)
         assert job is not None
         assert job.status == "running"
-

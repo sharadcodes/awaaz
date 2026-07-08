@@ -16,4 +16,3 @@ class AdapterFactory:
         if configured is None:
             raise JobError(f"unknown backend: {backend}")
         return OpenAiTtsAdapter(configured, model=model, voice=voice)
-

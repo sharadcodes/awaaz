@@ -26,7 +26,9 @@ async def test_job_creation_persists_ordered_chunks_and_progress(
 
         job = await create_job(session, document, JobCreate(character_limit=100), settings)
         chunks = (
-            await session.scalars(select(Chunk).where(Chunk.job_id == job.id).order_by(Chunk.position))
+            await session.scalars(
+                select(Chunk).where(Chunk.job_id == job.id).order_by(Chunk.position)
+            )
         ).all()
         response = await serialize_job(session, job)
 
@@ -158,9 +160,10 @@ async def test_worker_processes_jobs_in_round_robin_order(
     await worker.recover_abandoned()
 
     processed_order: list[str] = []
-    with patch("awaaz.db.session_factory", sessions), patch.object(
-        worker._adapters, "create", return_value=AsyncMock()
-    ) as mock_create:
+    with (
+        patch("awaaz.db.session_factory", sessions),
+        patch.object(worker._adapters, "create", return_value=AsyncMock()) as mock_create,
+    ):
         mock_adapter = AsyncMock()
         mock_adapter.synthesize.return_value = None
         mock_create.return_value = mock_adapter
@@ -169,9 +172,7 @@ async def test_worker_processes_jobs_in_round_robin_order(
             async with sessions() as session:
                 completed = (
                     await session.scalars(
-                        select(Chunk)
-                        .where(Chunk.status == "completed")
-                        .order_by(Chunk.updated_at)
+                        select(Chunk).where(Chunk.status == "completed").order_by(Chunk.updated_at)
                     )
                 ).all()
                 if len(completed) > len(processed_order):
@@ -192,4 +193,3 @@ async def test_worker_processes_jobs_in_round_robin_order(
 def test_adapter_factory_rejects_unknown_backend() -> None:
     with pytest.raises(JobError, match="unknown backend"):
         AdapterFactory(Settings()).create("missing", "model", "voice")
-

@@ -12,6 +12,7 @@ def test_required_routes_are_in_openapi_schema() -> None:
     assert "/api/v1/jobs/{job_id}/events" in paths
     assert "/api/v1/jobs/{job_id}/download" in paths
     assert "/v1/audio/speech" in paths
+    assert "/api/v1/backends/{name}/preview" in paths
 
 
 async def test_backend_discovery_contains_env_configured_values() -> None:
@@ -22,4 +23,3 @@ async def test_backend_discovery_contains_env_configured_values() -> None:
     assert backends[0]["name"] == "supertonic"
     assert backends[0]["base_url"] == settings.supertonic.base_url
     assert backends[1]["name"] == "kokoro"
-

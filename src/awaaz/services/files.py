@@ -130,4 +130,3 @@ async def extract_cover(source: Path, target: Path) -> bool:
     )
     await process.communicate()
     return target.exists() and target.stat().st_size > 0
-

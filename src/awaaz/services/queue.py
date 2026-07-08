@@ -45,13 +45,7 @@ class QueueWorker:
             pending_jobs = (
                 select(Job.id, Job.created_at)
                 .where(Job.status.in_({"queued", "running"}))
-                .where(
-                    Job.id.in_(
-                        select(Chunk.job_id)
-                        .where(Chunk.status == "pending")
-                        .distinct()
-                    )
-                )
+                .where(Job.id.in_(select(Chunk.job_id).where(Chunk.status == "pending").distinct()))
                 .order_by(Job.created_at, Job.id)
             )
             rows = (await session.execute(pending_jobs)).all()
@@ -145,9 +139,9 @@ class QueueWorker:
         return True
 
     async def _find_ready_job(self) -> str | None:
-        incomplete = select(Chunk.id).where(
-            Chunk.job_id == Job.id, Chunk.status != "completed"
-        ).exists()
+        incomplete = (
+            select(Chunk.id).where(Chunk.job_id == Job.id, Chunk.status != "completed").exists()
+        )
         async with self._sessions() as session:
             job_id: str | None = await session.scalar(
                 select(Job.id)

@@ -19,4 +19,3 @@ def test_documented_engine_defaults_use_compose_service_names(monkeypatch) -> No
     assert settings.kokoro.model == "kokoro"
     assert settings.kokoro.voice == "af_bella"
     assert settings.worker_concurrency == 1
-

@@ -117,7 +117,9 @@ export default function App() {
   const [view, setView] = useState<View>('library');
   const [filter, setFilter] = useState<Filter | null>(null);
   const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null);
-  const [chipCategory, setChipCategory] = useState<'all' | 'collections' | 'authors' | 'series' | 'tags'>('all');
+  const [chipCategory, setChipCategory] = useState<
+    'all' | 'collections' | 'authors' | 'series' | 'tags'
+  >('all');
   const [chipFilter, setChipFilter] = useState('');
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
@@ -129,7 +131,9 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [managingCollectionId, setManagingCollectionId] = useState<string | null>(null);
   const [creatingCollection, setCreatingCollection] = useState(false);
-  const [renamingCollection, setRenamingCollection] = useState<{ id: string; name: string } | null>(null);
+  const [renamingCollection, setRenamingCollection] = useState<{ id: string; name: string } | null>(
+    null,
+  );
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [voicePreferences, setVoicePreferences] = useState<Record<string, string>>(() => {
     try {
@@ -266,7 +270,9 @@ export default function App() {
   const handleJobAction = (jobId: string, action: JobAction) => {
     void run(async () => {
       const updated = await controlJob(jobId, action);
-      setJobs((current) => current.map((jobItem) => (jobItem.id === updated.id ? updated : jobItem)));
+      setJobs((current) =>
+        current.map((jobItem) => (jobItem.id === updated.id ? updated : jobItem)),
+      );
     });
   };
 
@@ -408,7 +414,13 @@ export default function App() {
             onClick={() => setSidebarOpen(true)}
             aria-label="Open menu"
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              aria-hidden="true"
+            >
               <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
@@ -451,13 +463,23 @@ export default function App() {
             aria-label="Settings"
             title="Settings"
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              aria-hidden="true"
+            >
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.1.608 2.296.07 2.572-1.065z"
               />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+              />
             </svg>
           </button>
         </div>
@@ -473,10 +495,7 @@ export default function App() {
         )}
         <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
           <nav className="sidebar-nav">
-            <button
-              className="upload-button primary-button"
-              onClick={() => setShowUpload(true)}
-            >
+            <button className="upload-button primary-button" onClick={() => setShowUpload(true)}>
               <svg
                 className="upload-icon-plus"
                 viewBox="0 0 24 24"
@@ -537,7 +556,10 @@ export default function App() {
                 {collections.map((collection) => {
                   const isSelected = selectedCollectionId === collection.id;
                   return (
-                    <div key={collection.id} className={`collection-item ${isSelected ? 'active' : ''}`}>
+                    <div
+                      key={collection.id}
+                      className={`collection-item ${isSelected ? 'active' : ''}`}
+                    >
                       <div
                         className="collection-row"
                         onClick={() => handleSelectCollection(collection.id)}
@@ -590,8 +612,18 @@ export default function App() {
                             setManagingCollectionId(collection.id);
                           }}
                         >
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                          <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            aria-hidden="true"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M4 6h16M4 12h16M4 18h16"
+                            />
                           </svg>
                         </button>
                         <button
@@ -616,11 +648,7 @@ export default function App() {
           <div className="sidebar-footer">
             <span>
               Made with ♥ by{' '}
-              <a
-                href="https://github.com/sharadcodes"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
+              <a href="https://github.com/sharadcodes" target="_blank" rel="noopener noreferrer">
                 Sharad Raj Singh Maurya
               </a>
             </span>
@@ -706,12 +734,12 @@ export default function App() {
                   <input
                     className="filter-input"
                     type="text"
-                  placeholder={`Filter ${chipCategory}…`}
-                  value={chipFilter}
-                  onChange={(event) => setChipFilter(event.target.value)}
-                />
-              </div>
-            )}
+                    placeholder={`Filter ${chipCategory}…`}
+                    value={chipFilter}
+                    onChange={(event) => setChipFilter(event.target.value)}
+                  />
+                </div>
+              )}
             </div>
             {chipCategory !== 'all' && (
               <div className="value-chips">
@@ -899,7 +927,13 @@ function BookRow({ document: doc, job, onClick }: BookRowProps) {
         {description && <span className="library-item-desc">{description}</span>}
         {job && job.status !== 'cancelled' && (
           <div className="library-item-progress">
-            <span className="progress-bar" role="progressbar" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100}>
+            <span
+              className="progress-bar"
+              role="progressbar"
+              aria-valuenow={percent}
+              aria-valuemin={0}
+              aria-valuemax={100}
+            >
               <span className="progress-bar-fill" style={{ width: `${percent}%` }} />
             </span>
             <span className="library-item-progress-pct">{percent}%</span>
@@ -952,7 +986,13 @@ function DetailModal({
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal detail-modal" onClick={(event) => event.stopPropagation()}>
         <button className="modal-close detail-close" onClick={onClose} aria-label="Close">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            aria-hidden="true"
+          >
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
@@ -1017,7 +1057,11 @@ function DetailModal({
                 {draft.trim() ? draft.trim().split(/\s+/).length.toLocaleString() : 0} words
               </span>
               <span>
-                {draft.split(/\n\s*\n/).filter(Boolean).length.toLocaleString()} paragraphs
+                {draft
+                  .split(/\n\s*\n/)
+                  .filter(Boolean)
+                  .length.toLocaleString()}{' '}
+                paragraphs
               </span>
             </div>
           </div>
@@ -1039,12 +1083,7 @@ function DetailModal({
             <h3>Jobs for this title</h3>
             <div className="job-grid">
               {documentJobs.map((job) => (
-                <JobCard
-                  key={job.id}
-                  job={job}
-                  title={doc.title}
-                  onAction={onJobAction}
-                />
+                <JobCard key={job.id} job={job} title={doc.title} onAction={onJobAction} />
               ))}
             </div>
           </div>
@@ -1071,7 +1110,13 @@ function UploadModal({ busy, onClose, onCreateText, onUpload }: UploadModalProps
             <p className="modal-subtitle">Import an EPUB/TXT file or paste raw text.</p>
           </div>
           <button className="modal-close" onClick={onClose} aria-label="Close">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              aria-hidden="true"
+            >
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
@@ -1138,7 +1183,13 @@ function CollectionCreateModal({ busy, onClose, onCreate }: CollectionCreateModa
   );
 }
 
-function CollectionManageModal({ collection, documents, busy, onClose, onSave }: CollectionManageModalProps) {
+function CollectionManageModal({
+  collection,
+  documents,
+  busy,
+  onClose,
+  onSave,
+}: CollectionManageModalProps) {
   const [search, setSearch] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(
     () =>
@@ -1213,9 +1264,7 @@ function CollectionManageModal({ collection, documents, busy, onClose, onSave }:
                 onChange={() => toggle(document.id)}
               />
               <span className="collection-manage-title">{document.title}</span>
-              {document.author && (
-                <span className="collection-manage-meta">{document.author}</span>
-              )}
+              {document.author && <span className="collection-manage-meta">{document.author}</span>}
             </label>
           ))
         )}
