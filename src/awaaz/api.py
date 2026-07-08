@@ -122,12 +122,18 @@ async def list_backend_voices(
     except Exception:
         return BackendVoicesResponse(backend=name, voices=[backend.voice])
     # Supertonic returns {"styles": [{"name": "..."}, ...]}.
-    # Kokoro returns {"voices": ["...", ...]}.
+    # Kokoro returns {"voices": ["...", ...]} or {"voices": [{"id": "...", "name": "..."}, ...]}.
     voices: list[str] = []
     for style in data.get("styles", []):
         if isinstance(style, dict) and "name" in style:
             voices.append(str(style["name"]))
-    voices.extend(data.get("voices", []))
+    for voice_item in data.get("voices", []):
+        if isinstance(voice_item, dict):
+            voice_id = voice_item.get("id") or voice_item.get("name")
+            if voice_id:
+                voices.append(str(voice_id))
+        elif voice_item:
+            voices.append(str(voice_item))
     return BackendVoicesResponse(backend=name, voices=voices)
 
 
