@@ -1,4 +1,4 @@
-import { ApiError, createTextDocument, listBackends } from '../api/client';
+import { ApiError, createTextDocument, listBackends, previewVoice } from '../api/client';
 
 beforeEach(() => {
   globalThis.fetch = jest.fn();
@@ -31,4 +31,25 @@ test('surfaces backend problem detail', async () => {
     .mockResolvedValue(mockResponse({ detail: 'backend unavailable' }, 503));
 
   await expect(listBackends()).rejects.toEqual(new ApiError('backend unavailable', 503));
+});
+
+test('requests voice preview through versioned API', async () => {
+  const mockBlob = new Blob(['audio_data'], { type: 'audio/mpeg' });
+  jest.mocked(globalThis.fetch).mockResolvedValue({
+    ok: true,
+    status: 200,
+    blob: async () => mockBlob,
+  } as Response);
+
+  await expect(
+    previewVoice('kokoro', { voice: 'af_bella', model: 'kokoro', speed: 1.0, text: 'Hello' }),
+  ).resolves.toBe(mockBlob);
+
+  expect(globalThis.fetch).toHaveBeenCalledWith(
+    '/api/v1/backends/kokoro/preview',
+    expect.objectContaining({
+      method: 'POST',
+      body: JSON.stringify({ voice: 'af_bella', model: 'kokoro', speed: 1.0, text: 'Hello' }),
+    }),
+  );
 });

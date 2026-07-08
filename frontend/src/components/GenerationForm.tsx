@@ -4,6 +4,7 @@ import { listBackendVoices } from '../api/client';
 import { countChunks } from '../api/chunking';
 import type { Backend, ChunkingMode, JobRequest } from '../types';
 import { VoiceSelector } from './VoiceSelector';
+import { useVoicePreview } from '../hooks/useVoicePreview';
 
 interface GenerationFormProps {
   backends: Backend[];
@@ -25,7 +26,13 @@ function modeDetail(value: ChunkingMode): string {
   return modes.find((item) => item.value === value)?.detail ?? '';
 }
 
-export function GenerationForm({ backends, disabled, onSubmit, text, voicePreferences }: GenerationFormProps) {
+export function GenerationForm({
+  backends,
+  disabled,
+  onSubmit,
+  text,
+  voicePreferences,
+}: GenerationFormProps) {
   const [backendName, setBackendName] = useState('');
   const [model, setModel] = useState('');
   const [voice, setVoice] = useState('');
@@ -33,6 +40,9 @@ export function GenerationForm({ backends, disabled, onSubmit, text, voicePrefer
   const [mode, setMode] = useState<ChunkingMode>('paragraph');
   const [characterLimit, setCharacterLimit] = useState(1000);
   const [voices, setVoices] = useState<string[]>([]);
+  const [previewText, setPreviewText] = useState('');
+
+  const { previewState, error: previewError, play, stop } = useVoicePreview();
 
   const backend = useMemo(
     () => backends.find((item) => item.name === backendName) ?? backends[0],
@@ -42,7 +52,9 @@ export function GenerationForm({ backends, disabled, onSubmit, text, voicePrefer
   // Character limit only applies in "character" mode. Other modes use the
   // backend maximum so semantic units are preserved.
   const limitVisible = mode === 'character';
-  const effectiveLimit = limitVisible ? characterLimit : (backend?.max_characters ?? characterLimit);
+  const effectiveLimit = limitVisible
+    ? characterLimit
+    : (backend?.max_characters ?? characterLimit);
 
   useEffect(() => {
     if (!backend) return;
@@ -74,9 +86,26 @@ export function GenerationForm({ backends, disabled, onSubmit, text, voicePrefer
     };
   }, [backend]);
 
+  useEffect(() => {
+    stop();
+  }, [backendName, model, voice, speed, stop]);
+
   if (!backend) return <p className="empty-state">No TTS backend configured.</p>;
 
   const chunkCount = countChunks(text, mode, effectiveLimit);
+
+  const handlePreview = () => {
+    if (previewState === 'playing') {
+      stop();
+    } else {
+      void play(backend.name, {
+        voice,
+        model,
+        speed,
+        text: previewText.trim() || undefined,
+      });
+    }
+  };
 
   return (
     <form
@@ -112,7 +141,10 @@ export function GenerationForm({ backends, disabled, onSubmit, text, voicePrefer
             onChange={setVoice}
             required
             placeholder="Enter custom voice name"
+            onPreview={handlePreview}
+            previewState={previewState}
           />
+          {previewError && <span className="preview-error">{previewError}</span>}
         </label>
         <label>
           Model
@@ -127,6 +159,17 @@ export function GenerationForm({ backends, disabled, onSubmit, text, voicePrefer
             step="0.05"
             value={speed}
             onChange={(event) => setSpeed(Number(event.target.value))}
+          />
+        </label>
+        <label className="field-span">
+          Custom preview text <span className="optional">(optional)</span>
+          <input
+            type="text"
+            value={previewText}
+            onChange={(e) => setPreviewText(e.target.value)}
+            placeholder="Hello! This is a preview of the voice you selected in Awaaz."
+            maxLength={500}
+            disabled={previewState === 'loading'}
           />
         </label>
         <label className="field-span">
@@ -162,7 +205,11 @@ export function GenerationForm({ backends, disabled, onSubmit, text, voicePrefer
           </label>
         )}
       </div>
-      <button className="primary-button" type="submit" disabled={disabled}>
+      <button
+        className="primary-button"
+        type="submit"
+        disabled={disabled || previewState === 'loading'}
+      >
         <span aria-hidden="true">▶</span> Generate audiobook
       </button>
     </form>
