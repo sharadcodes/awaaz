@@ -66,6 +66,16 @@ git push origin v1.0.3
 
 That's it. GitHub Actions picks up the tag and automatically publishes the GitHub Release.
 
+### Step 6 — Sync `dev` back from `main`
+
+After every release, `dev` will be behind `main` (it's missing the version bump commit). Always merge `main` back into `dev`:
+
+```powershell
+git checkout dev
+git merge origin/main --no-edit
+git push
+```
+
 ---
 
 ## What Happens Automatically
