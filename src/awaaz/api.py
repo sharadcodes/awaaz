@@ -159,31 +159,46 @@ async def upload_document(
     filename = Path((file.filename or "upload").replace("\\", "/")).name
     try:
         extension = validate_upload(filename)
-        stored = settings.uploads_dir / f"{uuid.uuid4()}{extension}"
+    except AwaazError as error:
+        raise _bad_request(error) from error
+
+    stored = settings.uploads_dir / f"{uuid.uuid4()}{extension}"
+    cover_target = settings.uploads_dir / f"{uuid.uuid4()}.cover.jpg"
+    try:
         await save_upload(file, stored, settings.max_upload_bytes)
         text = await extract_text(stored)
         metadata = await extract_metadata(stored)
         cover_path = None
-        cover_target = settings.uploads_dir / f"{uuid.uuid4()}.cover.jpg"
         if await extract_cover(stored, cover_target):
             cover_path = str(cover_target)
-    except AwaazError as error:
-        raise _bad_request(error) from error
-    document = Document(
-        title=(title or metadata.get("title") or Path(filename).stem).strip(),
-        source_filename=filename,
-        text=text.strip(),
-        author=_join_authors(metadata.get("authors")),
-        series=metadata.get("series"),
-        tags=", ".join(metadata.get("tags", [])) if metadata.get("tags") else None,
-        cover_path=cover_path,
-        metadata_json=metadata,
-        word_count=len(text.split()),
-    )
-    session.add(document)
-    await session.commit()
-    await session.refresh(document, ["collections"])
-    return document
+
+        document = Document(
+            title=(title or metadata.get("title") or Path(filename).stem).strip(),
+            source_filename=filename,
+            text=text.strip(),
+            author=_join_authors(metadata.get("authors")),
+            series=metadata.get("series"),
+            tags=", ".join(metadata.get("tags", [])) if metadata.get("tags") else None,
+            cover_path=cover_path,
+            metadata_json=metadata,
+            word_count=len(text.split()),
+        )
+        session.add(document)
+        await session.commit()
+        await session.refresh(document, ["collections"])
+        return document
+    except Exception as error:
+        if cover_target.exists():
+            cover_target.unlink(missing_ok=True)
+        if isinstance(error, AwaazError):
+            raise _bad_request(error) from error
+        raise error
+    finally:
+        if stored.exists():
+            stored.unlink(missing_ok=True)
+        extracted = stored.with_suffix(".extracted.txt")
+        if extracted.exists():
+            extracted.unlink(missing_ok=True)
 
 
 def _join_authors(authors: list[str] | None) -> str | None:
@@ -249,9 +264,13 @@ async def download_cover(
 
 
 @router.delete("/documents/{document_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def remove_document(document_id: str, session: AsyncSession = Depends(get_session)) -> None:
+async def remove_document(
+    document_id: str,
+    session: AsyncSession = Depends(get_session),
+    settings: Settings = Depends(get_settings),
+) -> None:
     try:
-        await delete_document(session, document_id)
+        await delete_document(session, document_id, settings)
     except AwaazError as error:
         raise _bad_request(error) from error
 
